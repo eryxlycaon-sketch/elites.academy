@@ -149,16 +149,15 @@
     <div class="glow-orb orb-1"></div>
     <div class="glow-orb orb-2"></div>
 
-    <!-- AUTHENTICATION SCREEN -->
     <div id="auth-screen">
         <div class="auth-card">
             <div class="auth-logo"><i class="fas fa-layer-group"></i></div>
             <h2 id="auth-title">Welcome to StudyOS</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: 5px;">Sign in to continue</p>
             
-            <form class="auth-form" id="loginForm" onsubmit="handleAuth(event)">
-                <input type="email" placeholder="Email Address" required>
-                <input type="password" placeholder="Password" required>
+            <form class="auth-form" id="loginForm">
+                <input type="email" id="authEmail" placeholder="Email Address" required>
+                <input type="password" id="authPassword" placeholder="Password" required>
                 <select id="roleSelect">
                     <option value="Student">Role: Student</option>
                     <option value="Admin">Role: Admin</option>
@@ -166,26 +165,23 @@
                 </select>
                 <div class="auth-options">
                     <label><input type="checkbox"> Remember Me</label>
-                    <a href="#" onclick="alert('Verification link sent to your email!')">Forgot Password?</a>
+                    <a href="#" onclick="alert('Password reset module pending.')">Forgot Password?</a>
                 </div>
                 <button type="submit" class="btn-auth">Login System</button>
             </form>
 
-            <div class="auth-switch" onclick="alert('Registration module requires Firebase setup.')">
+            <div class="auth-switch" id="registerBtn">
                 Don't have an account? <span>Register here</span>
             </div>
             
-            <!-- Developer Credit (Auth Screen) -->
             <div class="developer-credit">
                 Developed by <a href="https://www.facebook.com/hasan.mhr.09" target="_blank">MD Mehedi hasan</a>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP WRAPPER -->
     <div id="main-app">
         
-        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="brand">
                 <div class="logo-icon"><i class="fas fa-layer-group"></i></div>
@@ -210,13 +206,11 @@
                 </div>
             </div>
             
-            <!-- Developer Credit (Sidebar) -->
             <div style="text-align: center; margin-top: 15px; font-size: 11px; color: var(--text-muted);">
                 Developed by <a href="https://www.facebook.com/hasan.mhr.09" target="_blank" style="color: var(--secondary-color); text-decoration: none; font-weight: 600;">MD Mehedi hasan</a>
             </div>
         </aside>
 
-        <!-- MAIN CONTENT -->
         <main class="main-content">
             <header class="topbar">
                 <div class="greeting">
@@ -225,26 +219,18 @@
                 </div>
                 <div class="top-actions">
                     <button class="icon-btn"><i class="far fa-bell"></i></button>
-                    <button class="icon-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+                    <button class="icon-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
             </header>
 
-            <!-- 1. DASHBOARD VIEW -->
             <section id="dashboard-view" class="view-section active-view">
                 <div class="bento-grid">
-                    
-                    <!-- Auto Slider Card -->
-                    <div class="card slider-card" id="headlineSlider">
-                        <!-- Slides injected via JS -->
-                    </div>
-
-                    <!-- Quick Stats -->
+                    <div class="card slider-card" id="headlineSlider"></div>
                     <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
                         <div style="width: 50px; height: 50px; background: rgba(0, 230, 118, 0.15); color: var(--success-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 15px;"><i class="fas fa-check-circle"></i></div>
                         <h2>85%</h2>
                         <p style="color: var(--text-muted); font-size: 13px;">Attendance Rate</p>
                     </div>
-
                     <div class="card" style="grid-column: span 3;">
                         <div class="card-header"><h3><i class="fas fa-list-ul"></i> Today's Schedule</h3></div>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -257,7 +243,6 @@
                 </div>
             </section>
 
-            <!-- 2. PROFILE VIEW -->
             <section id="profile-view" class="view-section">
                 <div class="card">
                     <div class="profile-header">
@@ -272,19 +257,13 @@
                         <div class="form-group"><label>Full Name</label><input type="text" value="John Doe"></div>
                         <div class="form-group"><label>Student ID</label><input type="text" value="231-15-1049" disabled></div>
                         <div class="form-group"><label>Department</label><input type="text" value="Computer Science & Engineering" disabled></div>
-                        <div class="form-group"><label>Email</label><input type="email" value="student@university.edu" disabled></div>
+                        <div class="form-group"><label>Email</label><input type="email" id="profileEmail" value="student@university.edu" disabled></div>
                         <div class="form-group"><label>Semester</label><input type="text" value="5th Semester"></div>
                         <div class="form-group"><label>Batch</label><input type="text" value="Fall 2023" disabled></div>
-                    </div>
-                    <div style="margin-top: 30px; border-top: 1px solid var(--card-border); padding-top: 20px;">
-                        <h4 style="margin-bottom: 15px;">Security</h4>
-                        <div class="form-group"><input type="password" placeholder="Enter New Password"></div>
-                        <button class="btn-primary" style="margin-top: 15px;" onclick="alert('Profile Updated!')">Save Changes</button>
                     </div>
                 </div>
             </section>
 
-            <!-- 3. CALENDAR VIEW -->
             <section id="calendar-view" class="view-section">
                 <div class="bento-grid grid-2">
                     <div class="card">
@@ -296,61 +275,42 @@
                         <div class="calendar-grid" id="calDaysNames">
                             <div class="day-name">Sun</div><div class="day-name">Mon</div><div class="day-name">Tue</div><div class="day-name">Wed</div><div class="day-name">Thu</div><div class="day-name">Fri</div><div class="day-name">Sat</div>
                         </div>
-                        <div class="calendar-grid" id="calGrid">
-                            <!-- Injected by JS -->
-                        </div>
+                        <div class="calendar-grid" id="calGrid"></div>
                     </div>
                     <div class="card">
                         <div class="card-header">
                             <h3><i class="fas fa-list-alt"></i> Events on <span id="selectedDateText" style="color:var(--secondary-color);">12 Jul</span></h3>
                         </div>
-                        <div class="events-list" id="eventListContainer">
-                            <!-- Injected by JS -->
-                        </div>
+                        <div class="events-list" id="eventListContainer"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- 4. RESOURCES VIEW -->
             <section id="resources-view" class="view-section">
                 <div class="card">
                     <div class="card-header" style="margin-bottom: 20px;">
                         <h3><i class="fas fa-folder-open"></i> Study Materials</h3>
-                        <div class="top-actions">
-                            <select style="background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: white; padding: 5px 10px; border-radius: 8px; outline: none;">
-                                <option>All Subjects</option>
-                                <option>Physics</option>
-                                <option>Math</option>
-                            </select>
-                        </div>
                     </div>
                     <div class="resource-grid">
                         <div class="resource-card"><div class="resource-icon icon-pdf"><i class="fas fa-file-pdf"></i></div><h4>Physics Ch-4</h4><p>PDF Document • 2MB</p></div>
                         <div class="resource-card"><div class="resource-icon icon-book"><i class="fas fa-book"></i></div><h4>Data Structs Book</h4><p>E-Book • 15MB</p></div>
-                        <div class="resource-card"><div class="resource-icon icon-slide"><i class="fas fa-file-powerpoint"></i></div><h4>Algorithms Lec-1</h4><p>PPT Slide • 5MB</p></div>
                         <div class="resource-card"><div class="resource-icon icon-link"><i class="fas fa-link"></i></div><h4>Python Doc</h4><p>Important Link</p></div>
-                        <div class="resource-card"><div class="resource-icon icon-pdf"><i class="fas fa-file-pdf"></i></div><h4>Math Formulas</h4><p>PDF Document • 1MB</p></div>
                     </div>
                 </div>
             </section>
-
-            <!-- Placeholder Views -->
-            <section id="subjects-view" class="view-section"><div class="card"><h2>Enrolled Subjects</h2><p style="color:gray; margin-top:10px;">Subject list goes here.</p></div></section>
-            <section id="tasks-view" class="view-section"><div class="card"><h2>Assignments & Labs</h2><p style="color:gray; margin-top:10px;">Tasks management goes here.</p></div></section>
-            <section id="admin-view" class="view-section"><div class="card"><h2>System Administration</h2><p style="color:gray; margin-top:10px;">Super Admin / Admin controls go here.</p></div></section>
-
+            
+            <section id="subjects-view" class="view-section"><div class="card"><h2>Enrolled Subjects</h2></div></section>
+            <section id="tasks-view" class="view-section"><div class="card"><h2>Assignments & Labs</h2></div></section>
+            <section id="admin-view" class="view-section"><div class="card"><h2>System Administration</h2></div></section>
         </main>
     </div>
 
-    <!-- Firebase Integration -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
+        // Import both signIn (Login) and createUser (Register)
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
-        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBo9o5Vk5dwygRfnh3P4CqggaAdFT402Es",
             authDomain: "elites-academy-ca2ea.firebaseapp.com",
@@ -361,31 +321,80 @@
             measurementId: "G-5S1TE0LRBR"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
-    </script>
+        const auth = getAuth(); // Firebase Auth initialize
 
-    <!-- UI Interaction Scripts -->
-    <script>
-        // --- 1. AUTHENTICATION & ROLE LOGIC ---
-        function handleAuth(e) {
+        // --- 1. FIREBASE AUTHENTICATION LOGIC ---
+
+        // LOGIN Logic
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
             const role = document.getElementById('roleSelect').value;
-            const nameInput = e.target.querySelector('input[type="email"]').value.split('@')[0];
+
+            try {
+                // Firebase Login
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log("Login Successful:", userCredential.user);
+                
+                setupDashboardUI(email, role);
+
+            } catch (error) {
+                alert("Login Failed: " + error.message);
+            }
+        });
+
+        // REGISTER Logic
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+
+            if(!email || !password) {
+                alert("অ্যাকাউন্ট তৈরি করতে আগে ইমেইল এবং পাসওয়ার্ড ইনপুট বক্সে লিখুন, তারপর 'Register here'-এ ক্লিক করুন।");
+                return;
+            }
+
+            try {
+                // Firebase Register
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                alert("Account created successfully! You can now login.");
+            } catch (error) {
+                alert("Registration Failed: " + error.message);
+            }
+        });
+
+        // LOGOUT Logic
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('auth-screen').style.display = 'flex';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error("Logout Error", error);
+            }
+        });
+
+
+        // --- 2. UI SETUP & NAVIGATION ---
+        function setupDashboardUI(email, role) {
+            const nameInput = email.split('@')[0];
             const displayName = nameInput ? nameInput.charAt(0).toUpperCase() + nameInput.slice(1) : 'User';
 
-            // Update UI based on Role
+            // Update UI Profiles
             document.getElementById('sidebarName').textContent = displayName;
             document.getElementById('profileNameDisplay').textContent = displayName;
             document.getElementById('sidebarRole').textContent = role;
             document.getElementById('profileRoleBadge').textContent = role;
+            document.getElementById('profileEmail').value = email;
             
             const avatarUrl = `https://ui-avatars.com/api/?name=${displayName}&background=00C2FF&color=fff`;
             document.getElementById('sidebarAvatar').src = avatarUrl;
             document.getElementById('profileAvatar').src = avatarUrl;
 
-            // Handle Admin Tabs Visibility
+            // Admin Visibility
             const adminTabs = document.querySelectorAll('.admin-only');
             if (role === 'Admin' || role === 'Super Admin') {
                 adminTabs.forEach(tab => tab.style.display = 'flex');
@@ -393,22 +402,15 @@
                 adminTabs.forEach(tab => tab.style.display = 'none');
             }
 
-            // Hide Auth, Show App
+            // Switch Screen
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'flex';
             
-            // Init features after login
             initSlider();
             renderCalendar();
         }
 
-        function logout() {
-            document.getElementById('main-app').style.display = 'none';
-            document.getElementById('auth-screen').style.display = 'flex';
-            document.getElementById('loginForm').reset();
-        }
-
-        // --- 2. SPA NAVIGATION LOGIC ---
+        // SPA Navigation
         const navItems = document.querySelectorAll('.nav-item');
         const views = document.querySelectorAll('.view-section');
         const headerTitle = document.getElementById('greetingText');
@@ -425,12 +427,11 @@
             });
         });
 
+
         // --- 3. AUTO SLIDER LOGIC ---
         const sliderData = [
             { type: 'Notice', title: 'Mid-Term Exam Routine Published', badge: 'New', badgeBg: 'rgba(0, 194, 255, 0.15)', badgeCol: '#00C2FF' },
-            { type: 'Quiz', title: 'Physics Chapter 4 Quiz Tomorrow', badge: 'Urgent', badgeBg: 'rgba(255, 145, 0, 0.15)', badgeCol: '#ff9100' },
-            { type: 'Assignment', title: 'Database SQL Assignment Due', badge: 'Deadline', badgeBg: 'rgba(255, 82, 82, 0.15)', badgeCol: '#ff5252' },
-            { type: 'Lab', title: 'Upload Lab Report PDF by Friday', badge: 'Action Required', badgeBg: 'rgba(112, 0, 255, 0.15)', badgeCol: '#b77bff' }
+            { type: 'Quiz', title: 'Physics Chapter 4 Quiz Tomorrow', badge: 'Urgent', badgeBg: 'rgba(255, 145, 0, 0.15)', badgeCol: '#ff9100' }
         ];
         
         let currentSlide = 0;
@@ -440,7 +441,6 @@
             const container = document.getElementById('headlineSlider');
             container.innerHTML = '';
             
-            // Create Slides
             sliderData.forEach((slide, index) => {
                 const slideDiv = document.createElement('div');
                 slideDiv.className = `slide ${index === 0 ? 'active-slide' : ''}`;
@@ -456,7 +456,6 @@
                 container.appendChild(slideDiv);
             });
 
-            // Create Dots
             const dotsContainer = document.createElement('div');
             dotsContainer.className = 'slider-dots';
             sliderData.forEach((_, index) => {
@@ -467,45 +466,36 @@
             });
             container.appendChild(dotsContainer);
 
-            // Start Auto Slide
             clearInterval(sliderInterval);
-            sliderInterval = setInterval(nextSlide, 4000);
-        }
-
-        function nextSlide() {
-            document.getElementById(`slide-${currentSlide}`).classList.remove('active-slide');
-            document.getElementById(`dot-${currentSlide}`).classList.remove('active');
-            
-            currentSlide = (currentSlide + 1) % sliderData.length;
-            
-            document.getElementById(`slide-${currentSlide}`).classList.add('active-slide');
-            document.getElementById(`dot-${currentSlide}`).classList.add('active');
+            sliderInterval = setInterval(() => {
+                document.getElementById(`slide-${currentSlide}`).classList.remove('active-slide');
+                document.getElementById(`dot-${currentSlide}`).classList.remove('active');
+                currentSlide = (currentSlide + 1) % sliderData.length;
+                document.getElementById(`slide-${currentSlide}`).classList.add('active-slide');
+                document.getElementById(`dot-${currentSlide}`).classList.add('active');
+            }, 4000);
         }
 
         // --- 4. CALENDAR LOGIC ---
         const dummyEvents = {
             12: [{ time: "10:00 AM", title: "Physics Quiz", type: "Quiz" }],
-            15: [{ time: "11:59 PM", title: "Math Assignment Due", type: "Assignment" }],
-            20: [{ time: "09:00 AM", title: "Mid-Term Starts", type: "Exam" }]
+            15: [{ time: "11:59 PM", title: "Math Assignment Due", type: "Assignment" }]
         };
 
         function renderCalendar() {
             const grid = document.getElementById('calGrid');
             grid.innerHTML = '';
-            // Generate 35 boxes for simplicity (5 weeks)
             for (let i = 1; i <= 31; i++) {
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'cal-day';
                 dayDiv.textContent = i;
                 
-                // Add dot if event exists
                 if(dummyEvents[i]) {
                     const dot = document.createElement('div');
                     dot.className = 'event-dot';
                     dayDiv.appendChild(dot);
                 }
 
-                // Highlight today (Simulating today as 12th)
                 if(i === 12) {
                     dayDiv.classList.add('active');
                     showEvents(12);
@@ -516,7 +506,6 @@
                     dayDiv.classList.add('active');
                     showEvents(i);
                 };
-                
                 grid.appendChild(dayDiv);
             }
         }
@@ -538,10 +527,9 @@
                         </div>`;
                 });
             } else {
-                container.innerHTML = `<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 10px;">No events scheduled for this day.</p>`;
+                container.innerHTML = `<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 10px;">No events scheduled.</p>`;
             }
         }
-
     </script>
 </body>
 </html>
