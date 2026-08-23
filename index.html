@@ -2921,7 +2921,8 @@
         async function exportData(btn) {
             if(activeSecurityMode === 'fake') return showToast("Exporting blocked in boring mode", true);
             if(vaultData.length === 0) return showToast("Nothing to export", true);
-            showToast("Packing your secrets... (Please wait)");
+            
+            showToast("Packing massive vault... Please don't close the tab.");
             
             try {
                 const finalBlob = await getBackupBlob();
@@ -2936,34 +2937,26 @@
                         });
                         return showToast("Export Shared Successfully!");
                     } catch (shareErr) {
-                        console.log("Share bypassed, falling back to direct Data URI download...");
+                        console.log("Share bypassed, falling back to direct download...");
                     }
                 }
 
-                const reader = new FileReader();
-                reader.onloadend = function() {
-                    const dataUrl = reader.result; 
-                    
-                    const dlAnchorElem = document.createElement('a');
-                    dlAnchorElem.href = dataUrl;
-                    dlAnchorElem.download = fileName;
-                    dlAnchorElem.style.display = 'none';
-                    document.body.appendChild(dlAnchorElem);
-                    
-                    setTimeout(() => {
-                        dlAnchorElem.click();
-                        setTimeout(() => {
-                            document.body.removeChild(dlAnchorElem);
-                            showToast("Export Download Triggered!");
-                        }, 500);
-                    }, 100);
-                };
+                // CRASH FIX: Using ObjectURL instead of FileReader
+                const url = window.URL.createObjectURL(finalBlob);
                 
-                reader.onerror = function() {
-                    showToast("Export failed: File too large to process.", true);
-                };
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.href = url;
+                dlAnchorElem.download = fileName;
+                dlAnchorElem.style.display = 'none';
+                document.body.appendChild(dlAnchorElem);
                 
-                reader.readAsDataURL(finalBlob);
+                dlAnchorElem.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(dlAnchorElem);
+                    window.URL.revokeObjectURL(url);
+                    showToast("Export Download Triggered Successfully!");
+                }, 500);
 
             } catch (e) {
                 console.error(e);
