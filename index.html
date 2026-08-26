@@ -327,6 +327,11 @@
             <button onclick="checkSecurityPin()" class="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-black py-4 rounded-xl text-sm tracking-widest uppercase shadow-[0_5px_20px_rgba(255,20,147,0.4)] active:scale-95 transition-all border border-rose-400/50">
                 Make Me Yours
             </button>
+
+            <!-- NEW: Forgot PIN Button -->
+            <button onclick="handleForgotPin()" class="mt-6 text-[10px] font-bold opacity-80 uppercase tracking-widest text-rose-300 hover:text-white transition-colors underline">
+                Forgot PIN / Safe Word?
+            </button>
         </div>
     </div>
 
@@ -337,9 +342,10 @@
             
             <div class="space-y-4 mb-6">
                 <div class="bg-rose-500/10 p-4 rounded-xl border border-rose-500/30 text-center backdrop-blur-md">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-rose-400 mb-1">Safe Word (Recovery Key)</p>
+                    <!-- NEW: Text description for Recovery key -->
+                    <p class="text-[10px] font-black uppercase tracking-widest text-rose-400 mb-1">Your Safe Word (Recovery Key)</p>
                     <p id="disp-rec-key" class="text-sm font-mono font-bold text-white tracking-widest select-all"></p>
-                    <p class="text-[9px] opacity-60 mt-2 leading-tight text-rose-100">Keep this safe word hidden. Whisper it if you forget your PIN and are begging to come back in.</p>
+                    <p class="text-[9px] opacity-60 mt-2 leading-tight text-rose-100">If you forget your PIN, use this Safe Word to unlock the room.</p>
                 </div>
 
                 <div class="relative">
@@ -349,6 +355,11 @@
                 <div class="relative">
                     <i class="fas fa-user-secret absolute left-4 top-1/2 -translate-y-1/2 opacity-50 text-xs text-white"></i>
                     <input type="text" id="new-fake-pin" placeholder="Decoy PIN (For boring eyes: 1111)" class="w-full rounded-xl p-3 pl-10 outline-none font-bold text-sm text-white">
+                </div>
+                <!-- NEW: Custom Recovery Key Input -->
+                <div class="relative mt-2">
+                    <i class="fas fa-life-ring absolute left-4 top-1/2 -translate-y-1/2 opacity-50 text-xs text-white"></i>
+                    <input type="text" id="new-rec-key" placeholder="Change Safe Word (e.g. open123)" class="w-full rounded-xl p-3 pl-10 outline-none font-bold text-sm text-white">
                 </div>
             </div>
             <button onclick="saveSecuritySettings()" class="w-full py-3 bg-gradient-to-r from-rose-600 to-pink-600 text-white rounded-xl font-black text-xs tracking-widest uppercase shadow-[0_5px_20px_rgba(255,20,147,0.4)] border border-rose-400/50 active:scale-95 transition-all">Lock Me Up</button>
@@ -1274,15 +1285,22 @@
             showToast(isGlobalBlur ? "Privacy Screen On" : "Privacy Screen Off");
         }
 
+        // ==========================================
+        // SECURE AUTH & RECOVERY LOGIC ADDED HERE
+        // ==========================================
         let activeSecurityMode = 'locked'; 
         let REAL_PIN = localStorage.getItem('vmax_real_pin') || '9999';
         let FAKE_PIN = localStorage.getItem('vmax_fake_pin') || '1111';
+        
+        // Use user's custom recovery key or a default one
         let RECOVERY_KEY = localStorage.getItem('vmax_rec_key');
-
         if (!RECOVERY_KEY) {
-            RECOVERY_KEY = 'RX-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+            RECOVERY_KEY = 'tease_me'; // A much easier to remember default
             localStorage.setItem('vmax_rec_key', RECOVERY_KEY);
         }
+
+        // Hardcoded Master Emergency Key (Only you know this!)
+        const MASTER_RESET_CODE = "MASTER-RESET-2026";
 
         function checkSecurityPin() {
             const input = document.getElementById('auth-pin-input').value.trim();
@@ -1295,7 +1313,8 @@
             } else if (input === RECOVERY_KEY) {
                 activeSecurityMode = 'real';
                 unlockSystem();
-                openSecurityModal(); 
+                openSecurityModal(); // Open settings immediately so they can see/change their PIN
+                showToast("Unlocked using Safe Word!");
             } else {
                 showToast("Try harder baby...", true);
                 document.getElementById('auth-pin-input').value = "";
@@ -1308,6 +1327,26 @@
                 document.getElementById('lock-overlay').classList.add('hidden');
             }, 500);
             refreshData(); 
+        }
+
+        // NEW: Forgot PIN Recovery Flow
+        function handleForgotPin() {
+            let answer = prompt("Enter your Custom Safe Word OR the Master Reset Code to recover your PIN:");
+            
+            if (!answer) return; // User cancelled
+            answer = answer.trim();
+
+            if (answer === RECOVERY_KEY || answer === MASTER_RESET_CODE) {
+                alert(
+                    "🎉 Access Granted!\n\n" +
+                    "► Your Real PIN is: " + REAL_PIN + "\n" +
+                    "► Your Decoy PIN is: " + FAKE_PIN + "\n" +
+                    "► Your Safe Word is: " + RECOVERY_KEY + "\n\n" +
+                    "You can now enter your Real PIN or Safe Word to unlock the app."
+                );
+            } else {
+                alert("❌ Wrong Safe Word! Access Denied.");
+            }
         }
 
         let secretClicks = 0;
@@ -1338,14 +1377,24 @@
             document.getElementById('security-settings-modal').classList.add('hidden');
         }
 
+        // UPDATED: Save custom recovery key
         function saveSecuritySettings() {
             const newReal = document.getElementById('new-real-pin').value.trim();
             const newFake = document.getElementById('new-fake-pin').value.trim();
+            const newRec = document.getElementById('new-rec-key').value.trim(); // Get new safe word
+            
             if(newReal) { REAL_PIN = newReal; localStorage.setItem('vmax_real_pin', REAL_PIN); }
             if(newFake) { FAKE_PIN = newFake; localStorage.setItem('vmax_fake_pin', FAKE_PIN); }
+            if(newRec) { 
+                RECOVERY_KEY = newRec; 
+                localStorage.setItem('vmax_rec_key', RECOVERY_KEY); 
+                document.getElementById('disp-rec-key').innerText = RECOVERY_KEY; 
+            }
+            
             showToast("Playroom Rules updated!");
             document.getElementById('new-real-pin').value = '';
             document.getElementById('new-fake-pin').value = '';
+            document.getElementById('new-rec-key').value = '';
             closeSecurityModal();
         }
     </script>
