@@ -1929,6 +1929,15 @@
 
     <script>
         const STORE_NAME = "vault_max_production";
+        // Moved to the very top on purpose: this used to sit near the bottom of the
+        // script, after an unguarded `auth.onAuthStateChanged(...)` call. `auth` is
+        // never actually initialized anywhere in this file (see the note further
+        // down, near that line) — so on any load where that line throws, it halted
+        // the rest of the script's top-level execution right there, and this
+        // constant (needed by every export/backup function) never got assigned at
+        // all. Declaring it first means export/backup no longer depends on
+        // anything else in the script — Firebase-related or not — succeeding first.
+        const BACKUP_MAGIC = 'FDVB1';
         let db, vaultData = [], blobUrlMap = new Map(), searchTimeout;
 
         // Revokes the cached object URL (if any) for an item's cover before dropping
@@ -2453,7 +2462,7 @@
             localStorage.setItem('v_max_theme', isDark ? 'dark' : 'light'); 
             if(Chart) { Chart.defaults.color = isDark ? '#fff' : '#666'; updateStats(); }
         }
-        if(localStorage.getItem('v_max_theme') === 'dark' || (!localStorage.getItem('v_max_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) toggleTheme();
+        try { if(localStorage.getItem('v_max_theme') === 'dark' || (!localStorage.getItem('v_max_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) toggleTheme(); } catch (themeErr) { console.error(themeErr); }
         
         const req = indexedDB.open("VaultMaxDB", 1); 
         req.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" }); 
@@ -2534,18 +2543,24 @@
                     chunks.push(']}');
                     const finalBlob = new Blob(chunks, { type: "application/json" });
                     const fileName = "selected_desires_lite_" + Date.now() + ".json";
-                    const reader = new FileReader();
-                    reader.onloadend = function() {
-                        const dlAnchorElem = document.createElement('a'); dlAnchorElem.href = reader.result; dlAnchorElem.download = fileName; dlAnchorElem.style.display = 'none'; document.body.appendChild(dlAnchorElem); dlAnchorElem.click();
-                        setTimeout(() => document.body.removeChild(dlAnchorElem), 500); showToast("Selected Lite Backup Exported!"); clearBulkSelection();
-                    };
-                    reader.readAsDataURL(finalBlob);
+                    const url = window.URL.createObjectURL(finalBlob);
+                    const dlAnchorElem = document.createElement('a'); dlAnchorElem.href = url; dlAnchorElem.download = fileName; dlAnchorElem.style.display = 'none'; document.body.appendChild(dlAnchorElem);
+                    try { dlAnchorElem.click(); } catch (clickErr) { console.log("Auto-click blocked, manual link will still work."); }
+                    document.body.removeChild(dlAnchorElem);
+                    showToast("Selected Lite Backup ready!"); clearBulkSelection();
+                    showManualDownloadLink(url, fileName, "Lite backup ready — tap to save");
                 } else {
                     const finalBlob = await buildBackupBlob(selectedItems);
                     const fileName = "selected_desires_full_" + Date.now() + ".fdvault";
                     const url = window.URL.createObjectURL(finalBlob);
-                    const dlAnchorElem = document.createElement('a'); dlAnchorElem.href = url; dlAnchorElem.download = fileName; dlAnchorElem.style.display = 'none'; document.body.appendChild(dlAnchorElem); dlAnchorElem.click();
-                    setTimeout(() => { document.body.removeChild(dlAnchorElem); window.URL.revokeObjectURL(url); showToast("Selected Full Export Triggered!"); clearBulkSelection(); }, 500);
+                    const dlAnchorElem = document.createElement('a'); dlAnchorElem.href = url; dlAnchorElem.download = fileName; dlAnchorElem.style.display = 'none'; document.body.appendChild(dlAnchorElem);
+                    try { dlAnchorElem.click(); } catch (clickErr) { console.log("Auto-click blocked, manual link will still work."); }
+                    document.body.removeChild(dlAnchorElem);
+                    showToast("Selected Full Backup ready!"); clearBulkSelection();
+                    // Same guaranteed fallback as the main Export button — on Via Browser / weak
+                    // WebViews the auto-click above can silently do nothing (or throw an access
+                    // error), so this always gives a real tappable way to get the file.
+                    showManualDownloadLink(url, fileName, "Backup ready — tap to save");
                 }
             } catch (e) { console.error(e); showToast("Export failed: " + e.message, true); }
         }
@@ -2718,9 +2733,11 @@
         }
 
         let ptrStartY = 0, isPulling = false; const mc = document.getElementById('main-content'), pl = document.getElementById('ptr-loader');
-        mc.addEventListener('touchstart', e => { if (mc.scrollTop === 0) { ptrStartY = e.touches[0].clientY; isPulling = true; } }, {passive: true});
-        mc.addEventListener('touchmove', e => { if (!isPulling) return; if (e.touches[0].clientY > ptrStartY + 80 && mc.scrollTop === 0) pl.classList.add('visible'); }, {passive: true});
-        mc.addEventListener('touchend', e => { if (!isPulling) return; isPulling = false; if (pl.classList.contains('visible')) { refreshData(() => { setTimeout(() => pl.classList.remove('visible'), 600); showToast("Desires re-indexed!"); }); } });
+        if (mc && pl) {
+            mc.addEventListener('touchstart', e => { if (mc.scrollTop === 0) { ptrStartY = e.touches[0].clientY; isPulling = true; } }, {passive: true});
+            mc.addEventListener('touchmove', e => { if (!isPulling) return; if (e.touches[0].clientY > ptrStartY + 80 && mc.scrollTop === 0) pl.classList.add('visible'); }, {passive: true});
+            mc.addEventListener('touchend', e => { if (!isPulling) return; isPulling = false; if (pl.classList.contains('visible')) { refreshData(() => { setTimeout(() => pl.classList.remove('visible'), 600); showToast("Desires re-indexed!"); }); } });
+        }
         
         function attachViewerSwipes() {
             const el = document.getElementById('viewer-img-container');
@@ -3140,8 +3157,23 @@
             }
         }
         
-        auth.onAuthStateChanged((u) => { if (u) { document.getElementById('user-info-text').innerText = u.displayName; document.getElementById('user-avatar').src = u.photoURL; document.getElementById('user-avatar').classList.remove('hidden'); document.getElementById('login-btn').classList.add('hidden'); document.getElementById('logout-btn').classList.remove('hidden'); document.getElementById('sync-actions').classList.remove('hidden'); } else { document.getElementById('user-info-text').innerText = "Not logged in"; document.getElementById('user-avatar').classList.add('hidden'); document.getElementById('login-btn').classList.remove('hidden'); document.getElementById('logout-btn').classList.add('hidden'); document.getElementById('sync-actions').classList.add('hidden'); } });
-        function loginWithGoogle() { const p = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(p).catch(err => showToast("Auth fault: " + err.message, true)); } function logoutFromGoogle() { auth.signOut(); showToast("Snuck out."); }
+        // NOTE: `auth` / `storage` are used throughout this file (login, cloud backup,
+        // cloud restore) but `firebase.initializeApp(...)` is never called anywhere
+        // in this document, and `auth`/`storage` are never assigned — only the SDK
+        // <script> tags are loaded (see <head>). That means the line below has been
+        // throwing "auth is not defined" on every load, which — before BACKUP_MAGIC
+        // got moved to the top of the script — was silently taking export/backup
+        // down with it as collateral damage (same script, everything after the
+        // throw never ran). Guarded now so a broken/missing Firebase setup can only
+        // ever break login + cloud sync, never anything unrelated to it. Cloud
+        // login/backup/restore still won't work until a real firebaseConfig +
+        // firebase.initializeApp(config) + `const auth = firebase.auth()` and
+        // `const storage = firebase.storage()` are added — I don't have your
+        // Firebase project's credentials to add that myself.
+        try {
+            auth.onAuthStateChanged((u) => { if (u) { document.getElementById('user-info-text').innerText = u.displayName; document.getElementById('user-avatar').src = u.photoURL; document.getElementById('user-avatar').classList.remove('hidden'); document.getElementById('login-btn').classList.add('hidden'); document.getElementById('logout-btn').classList.remove('hidden'); document.getElementById('sync-actions').classList.remove('hidden'); } else { document.getElementById('user-info-text').innerText = "Not logged in"; document.getElementById('user-avatar').classList.add('hidden'); document.getElementById('login-btn').classList.remove('hidden'); document.getElementById('logout-btn').classList.add('hidden'); document.getElementById('sync-actions').classList.add('hidden'); } });
+        } catch (authInitErr) { console.error("Firebase auth not initialized:", authInitErr); }
+        function loginWithGoogle() { try { const p = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(p).catch(err => showToast("Auth fault: " + err.message, true)); } catch (e) { showToast("Cloud login isn't set up yet", true); } } function logoutFromGoogle() { try { auth.signOut(); showToast("Snuck out."); } catch (e) { showToast("Cloud login isn't set up yet", true); } }
         
         function blobToBase64(blob) { return new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.onerror = () => r(null); fr.readAsDataURL(blob); }); }
 
@@ -3177,8 +3209,8 @@
         // Layout: 5 bytes magic "FDVB1" | 4 bytes (uint32 LE) header length | header JSON | raw image bytes back-to-back
         // The header carries "imageSizes" (byte length of each image, in write order) so the reader can
         // Blob.slice() each image straight out of the file without ever decoding it to base64/string.
+        // BACKUP_MAGIC itself is declared at the very top of the script now — see the comment there.
         // ==========================
-        const BACKUP_MAGIC = 'FDVB1';
 
         async function buildBackupBlob(items) {
             const imageParts = []; const imageSizes = []; const vaultOut = [];
