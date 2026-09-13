@@ -167,6 +167,13 @@
             }
         }
 
+        /* Grid entrance stagger — class is only ever attached by buildCardHTML() when
+           isCinematicEnabled() is true, so no separate .low-power override is needed
+           here the way the hover lift above needs one; low-power devices simply never
+           get the class and the cards appear instantly, same as before this existed. */
+        @keyframes cardEnterUp { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .card-enter { animation: cardEnterUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
         .img-box {
             background: rgba(0,0,0,0.1); 
             border-radius: 20px; 
@@ -675,13 +682,13 @@
 
             <div class="text-[10px] font-black uppercase tracking-widest text-rose-200/50 ml-4 mb-2 mt-6">Backstage</div>
             
-            <button id="desk-nav-tourney" onclick="nav('tournament', this);" class="nav-item sys-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold w-full text-left opacity-70 hover:opacity-100 text-sm hover:bg-white/5">
+            <button id="desk-nav-tourney" onclick="nav('tournament', this);" class="nav-item sys-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold w-full text-left opacity-70 hover:opacity-100 text-sm hover:bg-white/5" title="Shortcut: Alt+4">
                 <i class="fas fa-trophy w-5 text-rose-400"></i> Tournament
             </button>
-            <button id="desk-nav-fame" onclick="nav('fame', this);" class="nav-item sys-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold w-full text-left opacity-70 hover:opacity-100 text-sm hover:bg-white/5">
+            <button id="desk-nav-fame" onclick="nav('fame', this);" class="nav-item sys-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold w-full text-left opacity-70 hover:opacity-100 text-sm hover:bg-white/5" title="Shortcut: Alt+5">
                 <i class="fas fa-crown w-5 text-yellow-400"></i> Hall of Fame
             </button>
-            <button id="desk-nav-achievements" onclick="nav('achievements', this);" class="nav-item sys-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold w-full text-left opacity-70 hover:opacity-100 text-sm hover:bg-white/5">
+            <button id="desk-nav-achievements" onclick="nav('achievements', this);" class="nav-item sys-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold w-full text-left opacity-70 hover:opacity-100 text-sm hover:bg-white/5" title="Shortcut: Alt+6">
                 <i class="fas fa-award w-5 text-amber-300"></i> Achievement Hall
             </button>
             <button id="desk-nav-stats" onclick="nav('stats', this);" class="nav-item sys-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold w-full text-left opacity-70 hover:opacity-100 text-sm hover:bg-white/5" title="Shortcut: Alt+2">
@@ -930,6 +937,15 @@
                 </div>
 
                 <div class="space-y-6">
+                    <div class="glass-card p-6 rounded-[30px] shadow-lg border-t-2 border-t-white/20 flex items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-sm sm:text-base font-black uppercase tracking-tight mb-1 flex items-center gap-2 text-white drop-shadow-sm">
+                                <i class="fas fa-keyboard text-rose-300"></i> Keyboard Shortcuts
+                            </h3>
+                            <p class="text-[10px] sm:text-xs opacity-70 font-bold text-gray-300">PC only — full list of shortcuts for search, bulk mode, the viewer, and more.</p>
+                        </div>
+                        <button onclick="openShortcutsModal()" class="shrink-0 px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs font-black uppercase tracking-wide active:scale-95 transition-all">View</button>
+                    </div>
                     <div class="glass-card p-6 sm:p-8 rounded-[30px] relative overflow-hidden shadow-lg border-t-2 border-t-purple-500/50">
                         <div class="absolute top-0 right-0 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                         <h3 class="text-base sm:text-xl font-black uppercase tracking-tight mb-2 flex items-center gap-2 text-white drop-shadow-sm">
@@ -1127,6 +1143,17 @@
                 <button id="sec-delete-btn" onclick="deleteSection()" class="hidden py-3.5 bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-black text-xs tracking-widest uppercase active:scale-95 transition-all px-5 shadow-sm"><i class="fas fa-trash"></i></button>
                 <button onclick="saveSection()" class="flex-grow py-3.5 bg-gradient-to-r from-rose-600 to-pink-500 text-white rounded-xl font-black text-xs tracking-widest uppercase shadow-[0_5px_25px_rgba(255,20,147,0.4)] border border-rose-400/50 active:scale-95 transition-all">Create Realm</button>
             </div>
+        </div>
+    </div>
+
+    <!-- KEYBOARD SHORTCUTS HELP MODAL — toggled with '?' -->
+    <div id="shortcuts-modal" class="fixed inset-0 z-[1300] hidden flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 transition-opacity" onclick="if(event.target === this) closeShortcutsModal();">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-xl font-black uppercase tracking-widest legendary-text"><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h2>
+                <button onclick="closeShortcutsModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="shortcuts-list" class="space-y-5 text-white"></div>
         </div>
     </div>
 
@@ -1638,6 +1665,8 @@
             list.forEach(a => { (grouped[a.category] = grouped[a.category] || []).push(a); });
 
             let html = '';
+            let badgeIdx = 0;
+            const cineEnabled = isCinematicEnabled();
             Object.keys(grouped).forEach(cat => {
                 html += `<div class="col-span-full mt-4 first:mt-0"><h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-rose-200/60 mb-1">${cat}</h3></div>`;
                 grouped[cat].forEach(a => {
@@ -1645,8 +1674,11 @@
                     const { current, target } = a.getProgress(state);
                     const pct = Math.min(100, Math.round((current / target) * 100));
                     const unlockDate = isUnlocked ? new Date(rec.unlocked[a.id]).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : null;
+                    const cardEnterClass = cineEnabled ? 'card-enter' : '';
+                    const cardEnterStyle = cineEnabled ? `style="animation-delay:${Math.min(badgeIdx, 18) * 28}ms"` : '';
+                    badgeIdx++;
                     html += `
-                    <div class="grid-card p-5 flex flex-col items-center text-center gap-2 badge-card ${isUnlocked ? 'badge-unlocked' : 'badge-locked'}">
+                    <div class="grid-card p-5 flex flex-col items-center text-center gap-2 badge-card ${cardEnterClass} ${isUnlocked ? 'badge-unlocked' : 'badge-locked'}" ${cardEnterStyle}>
                         ${!isUnlocked ? '<i class="fas fa-lock absolute top-3 right-3 text-xs opacity-50 text-white"></i>' : ''}
                         <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-1 ${isUnlocked ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-[0_5px_20px_rgba(255,215,0,0.5)]' : 'bg-white/5 text-gray-500'}">
                             <i class="fas ${a.icon}"></i>
@@ -1723,13 +1755,16 @@
 
             const restElites = eliteData.slice(3, 23);
             let gridHTML = '';
+            const cineEnabledFame = isCinematicEnabled();
             restElites.forEach((item, index) => {
                 let statsHtml = '';
                 if(item.championships) statsHtml = `👑 ${item.championships}`;
                 else if(item.matchesWon) statsHtml = `⚔️ ${item.matchesWon}`;
                 else if(item.isFavorite) statsHtml = `❤️`;
+                const cardEnterClass = cineEnabledFame ? 'card-enter' : '';
+                const cardEnterStyle = cineEnabledFame ? `style="animation-delay:${Math.min(index, 18) * 28}ms"` : '';
                 gridHTML += `
-                <div onclick="openView('${item.id}')" class="grid-card hover-card h-32 sm:h-40 rounded-2xl overflow-hidden relative cursor-pointer group !bg-white/5">
+                <div onclick="openView('${item.id}')" class="grid-card hover-card ${cardEnterClass} h-32 sm:h-40 rounded-2xl overflow-hidden relative cursor-pointer group !bg-white/5" ${cardEnterStyle}>
                     <div class="absolute top-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white text-[9px] font-black px-2 py-1 rounded-md border border-white/20 shadow-md">#${index + 4}</div>
                     <img src="${getTourneyImage(item)}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100">
                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-2.5 text-center">
@@ -1969,7 +2004,7 @@
         let currentImgPosition = { x: 50, y: 50 }, currentImgScale = 1; 
         let dragStartX = 0, dragStartY = 0, startObjX = 50, startObjY = 50, isDraggingImg = false, dragMoved = false;
 
-        let viewerGallery = []; let viewerCurrentIdx = 0; let viewerZoomLevel = 1; let viewerIsClear = false; let viewerPanX = 0, viewerPanY = 0; let isViewerDragging = false; let vDragStartX = 0, vDragStartY = 0; let vHasDragged = false; let windowDoDragViewer = null; let windowEndDragViewer = null; let viewerCurrentItemTitle = 'vault_item';
+        let viewerGallery = []; let viewerCurrentIdx = 0; let viewerZoomLevel = 1; let viewerIsClear = false; let viewerPanX = 0, viewerPanY = 0; let isViewerDragging = false; let vDragStartX = 0, vDragStartY = 0; let vHasDragged = false; let windowDoDragViewer = null; let windowEndDragViewer = null; let viewerCurrentItemTitle = 'vault_item'; let viewerCurrentItemId = null;
         let viewerSelectMode = false; let viewerSelectedIndices = new Set(); let viewerThumbUrls = {};
 
         function renderMentionPills() {
@@ -2105,6 +2140,120 @@
                     });
                 }, { passive: true });
             }
+
+            // PC keyboard shortcuts — restored from the Bumblebee build; the button
+            // tooltips (Ctrl+N/S/B, Alt+2/3) were already sitting in the HTML with
+            // nothing behind them, meaning this whole handler had gone missing.
+            // Alt+1/2/3 and everything else below matches the original exactly.
+            // Alt+4/5/6 are new — Tournament/Fame/Achievements didn't exist in that
+            // build, so there was nothing to restore for them; added as a bonus,
+            // slotted in after the original three rather than renumbering them.
+            document.addEventListener('keydown', (e) => {
+                const fullViewer = document.getElementById('full-viewer');
+                const isViewerOpen = fullViewer && !fullViewer.classList.contains('hidden');
+                const editModal = document.getElementById('modal');
+                const isEditModalOpen = editModal && !editModal.classList.contains('hidden');
+                const shortcutsModal = document.getElementById('shortcuts-modal');
+                const isShortcutsModalOpen = shortcutsModal && !shortcutsModal.classList.contains('hidden');
+                const targetIsInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT';
+
+                if (e.key === 'Escape') {
+                    if (isShortcutsModalOpen) closeShortcutsModal();
+                    if (isViewerOpen) closeViewModal();
+                    if (isEditModalOpen) closeModal();
+                    const secModal = document.getElementById('section-modal');
+                    if (secModal && !secModal.classList.contains('hidden')) closeSectionModal();
+                    return;
+                }
+
+                // '?' (Shift+/) toggles the shortcuts cheat-sheet — same guard as every
+                // other bare-letter shortcut below, so typing a literal "?" in a field
+                // never triggers it.
+                if (e.key === '?' && !targetIsInput) {
+                    e.preventDefault();
+                    toggleShortcutsModal();
+                    return;
+                }
+
+                if (isViewerOpen && !isEditModalOpen) {
+                    if (e.key === 'ArrowLeft') { prevViewerImage(); return; }
+                    if (e.key === 'ArrowRight') { nextViewerImage(); return; }
+
+                    if (e.key === 'x' || e.key === 'X') {
+                        e.preventDefault();
+                        toggleClearViewViewer();
+                        return;
+                    }
+                    // Act on whichever item is currently open in the viewer.
+                    if ((e.key === 'Delete' || e.key === 'Backspace') && viewerCurrentItemId !== null) {
+                        e.preventDefault();
+                        deleteItem(viewerCurrentItemId);
+                        return;
+                    }
+                    if ((e.key === 'e' || e.key === 'E') && viewerCurrentItemId !== null) {
+                        e.preventDefault();
+                        const idToEdit = viewerCurrentItemId;
+                        closeViewModal();
+                        editItem(idToEdit);
+                        return;
+                    }
+                    if ((e.key === 'l' || e.key === 'L') && viewerCurrentItemId !== null) {
+                        e.preventDefault();
+                        toggleFavorite(null, viewerCurrentItemId);
+                        return;
+                    }
+                }
+
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 's' || e.key === 'S') {
+                        if (isEditModalOpen) {
+                            e.preventDefault();
+                            saveEntry();
+                        }
+                        return;
+                    }
+                    if (e.key === 'n' || e.key === 'N') {
+                        e.preventDefault();
+                        if (!isEditModalOpen && !isViewerOpen) openModal();
+                        return;
+                    }
+                    if (e.key === 'f' || e.key === 'F' || e.key === 'k' || e.key === 'K') {
+                        e.preventDefault();
+                        if (!isEditModalOpen && !isViewerOpen) {
+                            const deskSearch = document.getElementById('search-input-desk');
+                            const mobSearch = document.getElementById('search-input-mob');
+                            if (window.innerWidth >= 768 && deskSearch) deskSearch.focus();
+                            else if (mobSearch) { toggleMobileSearch(); mobSearch.focus(); }
+                        }
+                        return;
+                    }
+                    if (e.key === 'g' || e.key === 'G') {
+                        e.preventDefault();
+                        if (!isEditModalOpen && !isViewerOpen) toggleGlobalSearch();
+                        return;
+                    }
+                    if (e.key === 'b' || e.key === 'B') {
+                        e.preventDefault();
+                        if (!isEditModalOpen && !isViewerOpen) toggleBulkMode();
+                        return;
+                    }
+                    if ((e.key === 'a' || e.key === 'A') && isBulkModeActive && !isEditModalOpen && !isViewerOpen && !targetIsInput) {
+                        e.preventDefault();
+                        toggleSelectAllBulk();
+                        return;
+                    }
+                }
+
+                if (e.altKey && !targetIsInput) {
+                    if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleTheme(); return; }
+                    if (e.key === '1') { e.preventDefault(); switchSection(activeSectionId); }
+                    if (e.key === '2') { e.preventDefault(); nav('stats', document.getElementById('desk-nav-stats')); }
+                    if (e.key === '3') { e.preventDefault(); nav('settings', document.getElementById('desk-nav-settings')); }
+                    if (e.key === '4') { e.preventDefault(); nav('tournament', document.getElementById('desk-nav-tourney')); }
+                    if (e.key === '5') { e.preventDefault(); nav('fame', document.getElementById('desk-nav-fame')); }
+                    if (e.key === '6') { e.preventDefault(); nav('achievements', document.getElementById('desk-nav-achievements')); }
+                }
+            });
         });
 
         function saveSectionsConfig() { localStorage.setItem('v_max_sections', JSON.stringify(customSections)); renderNav(); }
@@ -2319,6 +2468,56 @@
         }
         
         function closeSectionModal() { document.getElementById('section-modal').classList.add('hidden'); }
+
+        const SHORTCUT_GROUPS = [
+            { title: 'Global', items: [
+                ['Ctrl/Cmd + N', 'New entry'],
+                ['Ctrl/Cmd + F or K', 'Focus search'],
+                ['Ctrl/Cmd + G', 'Toggle global search'],
+                ['Ctrl/Cmd + B', 'Toggle bulk mode'],
+                ['Ctrl/Cmd + A', 'Select all (in bulk mode)'],
+                ['Alt + T', 'Toggle dark / light theme'],
+                ['Alt + 1', 'Jump to Vault'],
+                ['Alt + 2', 'Jump to Stats'],
+                ['Alt + 3', 'Jump to Settings'],
+                ['Alt + 4', 'Jump to Tournament'],
+                ['Alt + 5', 'Jump to Hall of Fame'],
+                ['Alt + 6', 'Jump to Achievement Hall'],
+                ['?', 'Show this cheat-sheet'],
+                ['Esc', 'Close whatever is open'],
+            ]},
+            { title: 'Image Viewer', items: [
+                ['← / →', 'Previous / next image'],
+                ['X', 'Toggle clear view'],
+                ['E', 'Edit this item'],
+                ['L', 'Toggle favorite'],
+                ['Delete / Backspace', 'Delete this item'],
+            ]},
+            { title: 'Edit Modal', items: [
+                ['Ctrl/Cmd + S', 'Save entry'],
+            ]},
+        ];
+
+        function renderShortcutsList() {
+            const el = document.getElementById('shortcuts-list');
+            el.innerHTML = SHORTCUT_GROUPS.map(group => `
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-rose-300/70 mb-2">${group.title}</h3>
+                    <div class="space-y-1.5">
+                        ${group.items.map(([key, label]) => `
+                            <div class="flex items-center justify-between gap-4 text-xs">
+                                <span class="opacity-80">${label}</span>
+                                <kbd class="shrink-0 bg-white/10 border border-white/20 rounded-md px-2 py-1 font-mono text-[10px] font-bold whitespace-nowrap">${key}</kbd>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openShortcutsModal() { renderShortcutsList(); document.getElementById('shortcuts-modal').classList.remove('hidden'); }
+        function closeShortcutsModal() { document.getElementById('shortcuts-modal').classList.add('hidden'); }
+        function toggleShortcutsModal() { document.getElementById('shortcuts-modal').classList.contains('hidden') ? openShortcutsModal() : closeShortcutsModal(); }
 
         function saveSection() {
             const name = document.getElementById('sec-name-input').value.trim(); if(!name) return showToast("Name your kink first!", true);
@@ -2617,7 +2816,15 @@
         let gridObserver = null;
         const RENDER_BATCH_SIZE = 24;
 
-        function buildCardHTML(item) {
+        function buildCardHTML(item, idxInBatch = 0) {
+            // Stagger fade-up entrance — high-performance devices only. Capped at the
+            // first 18 cards of a batch so a big grid doesn't leave the last cards
+            // waiting behind a multi-second delay chain; everything past that just
+            // renders immediately with the rest, which is imperceptible since it's
+            // already offscreen/lazy-loaded at that point anyway.
+            const cineEnabled = isCinematicEnabled();
+            const cardEnterClass = cineEnabled ? 'card-enter' : '';
+            const cardEnterStyle = cineEnabled ? `style="animation-delay:${Math.min(idxInBatch, 18) * 28}ms"` : '';
             const isChecked = bulkSelectedIds.has(item.id) ? 'checked' : ''; 
             const favHTML = `<div class="fav-btn" onclick="toggleFavorite(event, ${item.id})"><i id="fav-icon-${item.id}" class="${item.isFavorite ? 'fas fa-heart fav-active' : 'far fa-heart'}"></i></div>`; 
             const pinHTML = `<div class="fav-btn" style="right: 56px;" onclick="togglePinRecord(event, ${item.id})" title="Pin to top"><i id="pin-icon-${item.id}" class="fas fa-thumbtack ${item.isPinned ? 'text-yellow-400 -rotate-45' : 'text-white/60'}"></i></div>`; 
@@ -2648,7 +2855,7 @@
 
             const crownIcon = (item.championships && item.championships > 0) ? `<i class="fas fa-crown text-yellow-400 mr-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="Past Champion"></i> ` : '';
 
-            return `<div class="grid-card hover-card p-4 flex flex-col h-full cursor-default select-none relative overflow-hidden ${pinClass}" data-id="${item.id}"> 
+            return `<div class="grid-card hover-card ${cardEnterClass} p-4 flex flex-col h-full cursor-default select-none relative overflow-hidden ${pinClass}" data-id="${item.id}" ${cardEnterStyle}> 
                     ${cbHTML} ${favHTML} ${pinHTML}
                     <div onclick="openView('${item.id}')" class="img-box cursor-zoom-in relative">${badgeHtml} ${multiBadge} ${sectionLabel}<img src="${u}" loading="lazy" decoding="async" style="object-position: ${posX}% ${posY}%; transform: scale(${scaleVal});"></div> 
                     <div class="mt-5 flex-grow flex flex-col justify-between relative z-10"> 
@@ -2671,7 +2878,7 @@
             if (slice.length === 0) return;
 
             let html = '';
-            slice.forEach(item => { html += buildCardHTML(item); });
+            slice.forEach((item, idx) => { html += buildCardHTML(item, idx); });
             grid.insertAdjacentHTML('beforeend', html);
             renderedCount += slice.length;
 
@@ -2779,6 +2986,7 @@
             const item = vaultData.find(x => x.id == id);
             if(!item) return;
             bumpAchievementCounter('picsViewed');
+            viewerCurrentItemId = item.id;
             viewerGallery = item.gallery && item.gallery.length > 0 ? item.gallery : (item.img ? [item.img] : []);
             viewerCurrentIdx = 0; viewerZoomLevel = 1; viewerPanX = 0; viewerPanY = 0; viewerIsClear = false;
             viewerSelectMode = false; viewerSelectedIndices = new Set(); viewerThumbUrls = {};
