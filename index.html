@@ -3498,6 +3498,51 @@
             e.target.value = '';
         }
 
+        // Content hash for images, used only to tell whether an imported image is
+        // one already in the vault or a genuinely new one — not for anything security
+        // related. crypto.subtle needs a secure context (https/localhost); if it's
+        // unavailable this returns null and mergeGalleries() treats that image as new
+        // rather than silently dropping it, so the failure mode is "an occasional
+        // duplicate" rather than "lost photo".
+        async function blobHash(blob) {
+            try {
+                const buf = await blob.arrayBuffer();
+                const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+                return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (e) { return null; }
+        }
+
+        // Union, not overwrite: keeps every image already in the vault, in its existing
+        // order (so the cover image never shifts), and appends only the imported images
+        // that aren't already present. This is what stops importing an older backup from
+        // silently dropping images added locally after that backup was made.
+        async function mergeGalleries(existingGallery, importedGallery) {
+            const existingBlobs = (existingGallery || []).filter(b => b instanceof Blob);
+            const importedBlobs = (importedGallery || []).filter(b => b instanceof Blob);
+            if (importedBlobs.length === 0) return existingBlobs;
+            if (existingBlobs.length === 0) return importedBlobs;
+
+            const existingHashes = new Set();
+            for (const b of existingBlobs) { const h = await blobHash(b); if (h) existingHashes.add(h); }
+
+            const merged = [...existingBlobs];
+            for (const b of importedBlobs) {
+                const h = await blobHash(b);
+                if (h === null || !existingHashes.has(h)) { merged.push(b); if (h) existingHashes.add(h); }
+            }
+            return merged;
+        }
+
+        // Same "add, don't replace" idea for the other list fields (urls, categories,
+        // mentions) — case/whitespace-insensitive de-dupe, existing entries kept first.
+        function mergeStringArrays(existingArr, importedArr) {
+            const existing = existingArr || []; const imported = importedArr || [];
+            const seen = new Set(existing.map(x => String(x).toLowerCase().trim()));
+            const merged = [...existing];
+            for (const v of imported) { const key = String(v).toLowerCase().trim(); if (key && !seen.has(key)) { merged.push(v); seen.add(key); } }
+            return merged;
+        }
+
         async function processImportedJSON(data) {
             const wasEmptyVault = vaultData.length === 0; // for the "recovered from a wipe" achievement
             let importedVault = Array.isArray(data) ? data : (data.vault || []);
@@ -3507,15 +3552,29 @@
 
             let importedCount = 0; let processedItems = [];
             for(let idx = 0; idx < importedVault.length; idx++) {
-                const item = importedVault[idx]; let existing = vaultData.find(x => x.id === item.id); let processedItem = existing ? { ...existing, ...item } : { ...item };
-                
-                if(processedItem.gallery && processedItem.gallery.length) {
-                    let newGallery = [];
-                    for(const b64 of processedItem.gallery) { if(typeof b64 === 'string' && b64.startsWith('data:image')) { try { const res = await fetch(b64); newGallery.push(await res.blob()); } catch(e) { console.error("Image import failed", e); } } else { newGallery.push(b64); } }
-                    processedItem.gallery = newGallery.filter(Boolean); processedItem.img = processedItem.gallery[0] || null;
-                } else if (processedItem.img && typeof processedItem.img === 'string' && processedItem.img.startsWith('data:image')) {
-                    try { const res = await fetch(processedItem.img); processedItem.img = await res.blob(); processedItem.gallery = [processedItem.img]; } catch(e) {}
+                const item = importedVault[idx]; let existing = vaultData.find(x => x.id === item.id);
+                let processedItem = existing ? { ...existing, ...item } : { ...item };
+
+                // Convert this imported item's gallery to real Blobs first — legacy plain-JSON
+                // backups carry base64 strings, the .fdvault container already hands over Blobs.
+                let importedGalleryBlobs = [];
+                const rawImportedGallery = (item.gallery && item.gallery.length) ? item.gallery : (item.img ? [item.img] : []);
+                for (const b64 of rawImportedGallery) {
+                    if (typeof b64 === 'string' && b64.startsWith('data:image')) {
+                        try { const res = await fetch(b64); importedGalleryBlobs.push(await res.blob()); } catch(e) { console.error("Image import failed", e); }
+                    } else if (b64 instanceof Blob) { importedGalleryBlobs.push(b64); }
                 }
+
+                const existingGalleryBlobs = existing ? ((existing.gallery && existing.gallery.length) ? existing.gallery : (existing.img ? [existing.img] : [])) : [];
+                processedItem.gallery = await mergeGalleries(existingGalleryBlobs, importedGalleryBlobs);
+                processedItem.img = processedItem.gallery[0] || null;
+
+                if (existing) {
+                    processedItem.urls = mergeStringArrays(existing.urls, item.urls);
+                    processedItem.categories = mergeStringArrays(existing.categories, item.categories);
+                    processedItem.mentions = mergeStringArrays(existing.mentions, item.mentions);
+                }
+
                 processedItems.push(processedItem);
                 if (idx % 5 === 0) await new Promise(r => setTimeout(r, 5));
             }
