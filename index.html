@@ -535,6 +535,53 @@
         .aesthetic-clock-display .clock-ampm { opacity: 0.6; font-size: 0.75em; margin-left: 2px; font-weight: 700; }
         @keyframes clockPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.65); } }
         @keyframes clockBlink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0.2; } }
+
+        /* ===== Tabloid news ticker ===== */
+        .news-ticker-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.65), rgba(40,0,15,0.5));
+            border-top: 1px solid rgba(255,215,0,0.15);
+            border-bottom: 1px solid rgba(255,215,0,0.15);
+            padding: 7px 14px;
+            overflow: hidden;
+            position: relative;
+        }
+        .news-ticker-tag {
+            flex-shrink: 0;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 0.15em;
+            color: #ff4757;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding-right: 12px;
+            border-right: 1px solid rgba(255,255,255,0.15);
+        }
+        .news-ticker-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff4757; animation: clockPulse 1.6s infinite; }
+        .news-ticker-viewport { flex-grow: 1; overflow: hidden; white-space: nowrap; position: relative; }
+        .news-ticker-track { display: inline-flex; gap: 60px; will-change: transform; }
+        .news-ticker-track.scrolling { animation-name: tickerScroll; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .news-ticker-item {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            color: #ffd700;
+            text-transform: uppercase;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        .news-ticker-item:hover { opacity: 1; text-decoration: underline; }
+        @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        /* Low-power: no continuous transform animation at all — renderNewsTicker()
+           swaps the single visible headline on a timer instead, which is just a
+           cheap textContent change, not a per-frame compositor cost. */
+        .low-power .news-ticker-track.scrolling { animation: none !important; }
     </style>
 </head>
 <body class="antialiased flex h-screen overflow-hidden global-blur">
@@ -578,6 +625,7 @@
             </p>
             <div id="curfew-countdown" class="curfew-countdown-time text-4xl font-black mb-2">00:00:00</div>
             <p class="text-[10px] uppercase tracking-[0.2em]" style="color:#5b8bb0;">until it reopens</p>
+            <button id="curfew-bypass-btn" onclick="useCurfewBypass()" class="mt-8 text-[10px] uppercase tracking-[0.15em] underline opacity-40 hover:opacity-80 transition-opacity" style="color:#5b8bb0;">Emergency Access (<span id="curfew-bypass-remaining">2</span> left this month)</button>
         </div>
     </div>
 
@@ -617,12 +665,8 @@
          mode) silently swallow a script-triggered download click once an async gap has
          used up the browser's "this was a real tap" trust. A real link the user taps
          themselves always works, so this banner is shown as a guaranteed backup. -->
-    <div id="download-ready-banner" class="fixed inset-x-0 bottom-0 z-[9999] hidden justify-center p-4" style="pointer-events:none;">
-        <a id="download-ready-link" href="#" class="pointer-events-auto flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black text-xs sm:text-sm px-6 py-4 rounded-2xl shadow-[0_8px_25px_rgba(16,185,129,0.4)] border border-emerald-300/50 active:scale-95 transition-all">
-            <i class="fas fa-download"></i>
-            <span id="download-ready-text">Tap to Save Your Backup</span>
-        </a>
-    </div>
+    <!-- Populated entirely by showManualDownloadLink(s)() in JS — see there. -->
+    <div id="download-ready-banner" class="fixed inset-x-0 bottom-0 z-[9999] hidden justify-center p-4" style="pointer-events:none;"></div>
 
     <div id="full-viewer" class="fixed inset-0 z-[2000] bg-black/80 hidden flex-col items-center justify-center backdrop-blur-2xl transition-all duration-300 opacity-0"></div>
 
@@ -736,6 +780,17 @@
                 </div>
             </div>
         </header>
+
+        <!-- TABLOID NEWS TICKER — headlines generated from real app state (see
+             generateNewsHeadlines()). Scrolls continuously on high-performance
+             devices; rotates one headline at a time, no animation, on low-power
+             ones (see renderNewsTicker()). -->
+        <div id="news-ticker" class="news-ticker-wrap hidden">
+            <div class="news-ticker-tag"><span class="news-ticker-dot"></span> DAILY EDITION</div>
+            <div class="news-ticker-viewport">
+                <div id="news-ticker-track" class="news-ticker-track"></div>
+            </div>
+        </div>
 
         <div class="w-full mx-auto relative">
             
@@ -986,7 +1041,7 @@
                             <span class="flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30"><i class="fas fa-file-import text-emerald-300"></i></div> Inject New Desires</span>
                             <i class="fas fa-chevron-right opacity-40 text-xs"></i>
                         </button>
-                        <input type="file" id="import-input" class="hidden" accept=".json,.fdvault" onchange="importData(event, this)">
+                        <input type="file" id="import-input" class="hidden" accept=".json,.fdvault" multiple onchange="importData(event, this)">
                         
                         <button onclick="openUpdateLog();" class="w-full p-4 sm:p-5 hover:bg-white/10 rounded-2xl text-left font-black text-white flex justify-between items-center transition-all text-xs sm:text-sm border-t border-white/5">
                             <span class="flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30"><i class="fas fa-history text-cyan-300"></i></div> View Update Log</span>
@@ -1283,7 +1338,7 @@
                 showCurfewOverlay("Can't verify the time yet on this device. Connect to the internet once so this can be set up properly.");
                 return;
             }
-            if (isInCurfew(trueNow)) {
+            if (isInCurfew(trueNow) && !isCurfewBypassed(trueNow)) {
                 showCurfewOverlay();
             } else {
                 hideCurfewOverlay();
@@ -1315,6 +1370,48 @@
             checkAchievements();
         }
 
+        // Emergency access: 2 bypasses per calendar month. A bypass lasts until the
+        // current curfew window ends (stored as a timestamp) — it can't just hide the
+        // overlay, because enforceTimeLimits() re-runs every 10s and attemptUnlock()
+        // rejects PINs during curfew; both honour isCurfewBypassed() below. The PIN
+        // screen still appears afterward, so this lifts the time lock, not the PIN.
+        // Month is read from the trusted clock in LOCAL time: curfew is 00:00-06:00
+        // local, which is still the previous day in UTC, so a UTC month key would
+        // reset the allowance six hours late exactly when it's needed.
+        const CURFEW_BYPASSES_PER_MONTH = 2;
+
+        function getCurfewBypassState() {
+            const d = new Date(getTrueTime());
+            const periodKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            if (localStorage.getItem('vmax_curfew_bypass_period') !== periodKey) {
+                localStorage.setItem('vmax_curfew_bypass_period', periodKey);
+                localStorage.setItem('vmax_curfew_bypass_count', '0');
+            }
+            const used = parseInt(localStorage.getItem('vmax_curfew_bypass_count') || '0', 10);
+            return { used, remaining: Math.max(0, CURFEW_BYPASSES_PER_MONTH - used) };
+        }
+
+        function isCurfewBypassed(trueNow) {
+            return parseInt(localStorage.getItem('vmax_curfew_bypass_until') || '0', 10) > trueNow;
+        }
+
+        function useCurfewBypass() {
+            if (clockTamperSuspected) return;
+            const { used, remaining } = getCurfewBypassState();
+            if (remaining <= 0) { showToast("No emergency bypasses left this month — resets on the 1st.", true); return; }
+            if (!window.confirm(`Use an emergency bypass? You'll have ${remaining - 1} left this month, and tonight won't count toward your discipline streak.`)) return;
+            const trueNow = getTrueTime();
+            localStorage.setItem('vmax_curfew_bypass_count', String(used + 1));
+            localStorage.setItem('vmax_curfew_bypass_until', String(getCurfewEndTime(trueNow).getTime()));
+            logActivity("Curfew Bypassed", `Emergency access used (${used + 1}/${CURFEW_BYPASSES_PER_MONTH} this month)`);
+            // Reuses the tamper flag purely as "this night doesn't count toward the
+            // streak" — completeCurfewNightIfDue() (run by hideCurfewOverlay) reads it
+            // generically, and marks the night completed so it can't be counted twice.
+            localStorage.setItem('vmax_curfew_tamper_flag', '1');
+            hideCurfewOverlay();
+            showToast("Emergency access granted until 6 AM.");
+        }
+
         function showCurfewOverlay(customMsg) {
             trackCurfewNightProgress(customMsg);
             activeSecurityMode = 'locked';
@@ -1322,6 +1419,11 @@
             const overlay = document.getElementById('curfew-overlay');
             const msgEl = document.getElementById('curfew-msg');
             const countdownEl = document.getElementById('curfew-countdown');
+            const bypassBtn = document.getElementById('curfew-bypass-btn');
+            const bypassRemainingEl = document.getElementById('curfew-bypass-remaining');
+            // Not offered in the "can't verify the time" state — it isn't even confirmed to be curfew hours.
+            if (bypassBtn) bypassBtn.style.display = customMsg ? 'none' : '';
+            if (bypassRemainingEl) bypassRemainingEl.innerText = getCurfewBypassState().remaining;
             if (msgEl) msgEl.innerText = customMsg || "Right now is your time for focus and deep sleep — protecting that is healthy, not a punishment. Everything here will still be waiting for you afterward.";
             if (countdownEl) countdownEl.parentElement.style.display = customMsg ? 'none' : '';
             if (overlay) { overlay.classList.remove('hidden'); overlay.classList.add('flex'); overlay.style.opacity = 1; }
@@ -1358,7 +1460,7 @@
 
         function attemptUnlock() {
             const trueNow = getTrueTime();
-            if (clockTamperSuspected || isInCurfew(trueNow)) {
+            if (clockTamperSuspected || (isInCurfew(trueNow) && !isCurfewBypassed(trueNow))) {
                 showToast("Focus & sleep window is active (12 AM - 6 AM)", true);
                 return false;
             }
@@ -1646,10 +1748,11 @@
                 if (k === f) { btn.classList.add('bg-gradient-to-r', 'from-yellow-500', 'to-amber-500', 'text-black', 'border-yellow-300'); btn.classList.remove('bg-white/5', 'border-white/10', 'text-white'); }
                 else { btn.classList.remove('bg-gradient-to-r', 'from-yellow-500', 'to-amber-500', 'text-black', 'border-yellow-300'); btn.classList.add('bg-white/5', 'border-white/10', 'text-white'); }
             });
-            renderAchievementHall();
+            renderAchievementHall(true); // filter tab is a deliberate new view
         }
 
-        function renderAchievementHall() {
+        function renderAchievementHall(animateEntrance = false) {
+            animateCurrentRenderPass = animateEntrance && isCinematicEnabled();
             const rec = loadAchievementRecord();
             const state = computeAchievementState();
             const total = ACHIEVEMENTS.length;
@@ -1666,7 +1769,7 @@
 
             let html = '';
             let badgeIdx = 0;
-            const cineEnabled = isCinematicEnabled();
+            const cineEnabled = animateCurrentRenderPass;
             Object.keys(grouped).forEach(cat => {
                 html += `<div class="col-span-full mt-4 first:mt-0"><h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-rose-200/60 mb-1">${cat}</h3></div>`;
                 grouped[cat].forEach(a => {
@@ -1701,9 +1804,146 @@
         }
 
         // ==========================
+        // TABLOID NEWS TICKER
+        // ==========================
+        // Every headline below reads from state that's already tracked elsewhere
+        // (achievements, curfew streak, tourney history, favorites, sections) —
+        // nothing new is invented or fabricated just for the ticker. The one new
+        // piece of state is the backup-reminder timestamp (markBackupHappened()),
+        // since nothing previously recorded *when* a backup last happened, only
+        // *whether* one ever had (the achievement flag).
+        function markBackupHappened() { localStorage.setItem('vmax_last_backup_time', String(Date.now())); }
+
+        function generateNewsHeadlines() {
+            const headlines = [];
+
+            // Counted the same way setCategoryFilter('Unsorted') below actually filters
+            // (categories literally includes 'Unsorted') — previously this counted a
+            // slightly broader set (anything with an empty categories array too), so
+            // the headline's number and what clicking it actually showed could disagree.
+            const unsortedCount = vaultData.filter(i => i.categories && i.categories.includes('Unsorted')).length;
+            if (unsortedCount > 0) {
+                headlines.push({
+                    text: `SCANDAL: ${unsortedCount} Desire${unsortedCount === 1 ? '' : 's'} Still Unsorted — Chaos In The Vault`,
+                    action: () => {
+                        // Unsorted items can be sitting in any realm, so this needs the
+                        // vault page, global search scope, and the actual filter applied —
+                        // switchSection(activeSectionId) (the old action) didn't do any of
+                        // that, it just silently reselected whatever realm was already active.
+                        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                        document.getElementById('vault-page').classList.add('active');
+                        activePage = 'vault';
+                        renderNav();
+                        if (!isGlobalSearch) toggleGlobalSearch();
+                        setCategoryFilter('Unsorted');
+                    }
+                });
+            }
+
+            try {
+                const rec = loadAchievementRecord();
+                const state = computeAchievementState();
+                let closest = null, closestPct = 0;
+                ACHIEVEMENTS.forEach(a => {
+                    if (rec.unlocked[a.id]) return;
+                    const { current, target } = a.getProgress(state);
+                    const pct = target > 0 ? current / target : 0;
+                    if (pct >= 0.5 && pct > closestPct) { closestPct = pct; closest = { a, current, target }; }
+                });
+                if (closest) {
+                    const remaining = closest.target - closest.current;
+                    headlines.push({ text: `DEVELOPING: '${closest.a.title}' Just ${remaining} Away — Empire On Edge`, action: () => nav('achievements', document.getElementById('desk-nav-achievements')) });
+                }
+            } catch (e) { /* achievement engine not ready yet — skip this headline for now */ }
+
+            const streak = parseInt(localStorage.getItem('vmax_curfew_streak') || '0', 10);
+            if (streak >= 3) {
+                headlines.push({ text: `EXCLUSIVE: ${streak}-Night Discipline Streak Holding Strong`, action: () => nav('achievements', document.getElementById('desk-nav-achievements')) });
+            }
+
+            const lastBackup = parseInt(localStorage.getItem('vmax_last_backup_time') || '0', 10);
+            const daysSince = lastBackup ? Math.floor((Date.now() - lastBackup) / 86400000) : null;
+            if (vaultData.length > 0 && (daysSince === null || daysSince >= 7)) {
+                const label = daysSince === null ? 'Never Backed Up' : `${daysSince} Days Unprotected`;
+                headlines.push({ text: `URGENT: Empire's Secrets ${label} — Backup Now`, action: () => nav('settings', document.getElementById('desk-nav-settings')) });
+            }
+
+            const THREE_DAYS = 3 * 86400000;
+            const recentLegendary = vaultData
+                .filter(i => { const sec = customSections.find(s => s.id === i.sectionId); return sec && sec.isLegendary && i.timestamp && (Date.now() - i.timestamp) < THREE_DAYS; })
+                .sort((a, b) => b.timestamp - a.timestamp)[0];
+            if (recentLegendary) {
+                headlines.push({ text: `EXCLUSIVE: Legendary Realm Welcomes '${recentLegendary.title || 'A New Obsession'}'`, action: () => openView(recentLegendary.id) });
+            }
+
+            try {
+                const history = JSON.parse(localStorage.getItem('v_max_tourney_history') || '[]');
+                if (history.length > 0) {
+                    const last = history[history.length - 1];
+                    headlines.push({ text: `BREAKING: '${last.title || 'A Champion'}' Reigns As Latest Champion`, action: () => nav('fame', document.getElementById('desk-nav-fame')) });
+                }
+            } catch (e) {}
+
+            const favorites = vaultData.filter(i => i.isFavorite);
+            if (favorites.length > 0) {
+                const pick = favorites[Math.floor(Math.random() * favorites.length)];
+                headlines.push({ text: `RUMORED: '${pick.title || 'This One'}' Remains A Fan Favorite`, action: () => openView(pick.id) });
+            }
+
+            // Always-available filler so the ticker is never empty, even on a fresh vault.
+            headlines.push({ text: `REPORT: The Empire Now Holds ${vaultData.length} Desire${vaultData.length === 1 ? '' : 's'} Across ${customSections.length} Realm${customSections.length === 1 ? '' : 's'}`, action: null });
+
+            return headlines;
+        }
+
+        function renderNewsTicker() {
+            const wrap = document.getElementById('news-ticker');
+            const track = document.getElementById('news-ticker-track');
+            if (!wrap || !track) return;
+            if (activeSecurityMode === 'fake' || activeSecurityMode === 'locked') { wrap.classList.add('hidden'); return; }
+
+            const headlines = generateNewsHeadlines();
+            wrap.classList.remove('hidden');
+
+            const buildSpan = (h, idx) => `<span class="news-ticker-item" data-idx="${idx}">${h.text}</span>`;
+            clearInterval(window._tickerRotateInterval);
+
+            const bindClicks = () => {
+                track.querySelectorAll('.news-ticker-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const h = headlines[parseInt(el.dataset.idx, 10)];
+                        if (h && h.action) h.action();
+                    });
+                });
+            };
+
+            if (isCinematicEnabled()) {
+                // Duplicated once back-to-back so the loop point is invisible.
+                track.innerHTML = headlines.map(buildSpan).join('') + headlines.map(buildSpan).join('');
+                track.classList.add('scrolling');
+                requestAnimationFrame(() => {
+                    const halfWidth = track.scrollWidth / 2;
+                    const pxPerSecond = 45; // constant crawl speed regardless of headline count
+                    track.style.animationDuration = `${Math.max(10, halfWidth / pxPerSecond)}s`;
+                });
+                bindClicks();
+            } else {
+                track.classList.remove('scrolling');
+                track.style.animationDuration = '';
+                let idx = 0;
+                const showOne = () => { track.innerHTML = buildSpan(headlines[idx], idx); bindClicks(); };
+                showOne();
+                if (headlines.length > 1) {
+                    window._tickerRotateInterval = setInterval(() => { idx = (idx + 1) % headlines.length; showOne(); }, 4000);
+                }
+            }
+        }
+
+        // ==========================
         // HALL OF FAME RENDER ENGINE
         // ==========================
-        function renderHallOfFame() {
+        function renderHallOfFame(animateEntrance = false) {
+            animateCurrentRenderPass = animateEntrance && isCinematicEnabled();
             const podiumContainer = document.getElementById('podium-container');
             const fameGrid = document.getElementById('fame-grid');
             let eliteData = [...vaultData].sort((a, b) => {
@@ -1755,7 +1995,7 @@
 
             const restElites = eliteData.slice(3, 23);
             let gridHTML = '';
-            const cineEnabledFame = isCinematicEnabled();
+            const cineEnabledFame = animateCurrentRenderPass;
             restElites.forEach((item, index) => {
                 let statsHtml = '';
                 if(item.championships) statsHtml = `👑 ${item.championships}`;
@@ -2000,6 +2240,13 @@
 
         let editId = null, currentBlobs = [];
         let showFavoritesOnly = false, activeCategoryFilter = null, isBulkModeActive = false;
+        // render() tears the whole grid down and rebuilds it on *every* call (favorite
+        // toggles, edits, achievement checks, search keystrokes — not just page loads),
+        // so the entrance animation can't just fire unconditionally off isCinematicEnabled()
+        // the way it first shipped — that replayed it dozens of times a session and was
+        // the actual cause of the mobile lag. It's opt-in per render() call now; only
+        // genuine "new view" moments (switching section/search scope/filter) pass true.
+        let animateCurrentRenderPass = false;
         let bulkSelectedIds = new Set();
         let currentImgPosition = { x: 50, y: 50 }, currentImgScale = 1; 
         let dragStartX = 0, dragStartY = 0, startObjX = 50, startObjY = 50, isDraggingImg = false, dragMoved = false;
@@ -2141,6 +2388,10 @@
                 }, { passive: true });
             }
 
+            // Re-roll ticker headlines periodically even with no data changes, since
+            // some (days-since-backup, curfew streak) are time-based, not data-based.
+            setInterval(() => { if (typeof vaultData !== 'undefined' && db) renderNewsTicker(); }, 5 * 60 * 1000);
+
             // PC keyboard shortcuts — restored from the Bumblebee build; the button
             // tooltips (Ctrl+N/S/B, Alt+2/3) were already sitting in the HTML with
             // nothing behind them, meaning this whole handler had gone missing.
@@ -2275,7 +2526,7 @@
             document.getElementById('cinematic-intro-container').style.display = isGlobalSearch ? 'none' : 'flex';
 
             showToast(isGlobalSearch ? "Searching entire database" : "Searching active realm only");
-            render();
+            render(true); // scope genuinely changed (section-only vs whole vault) — worth the entrance
         }
 
         // The cinematic hero is a "nice to have" — it's turned off wholesale on
@@ -2409,7 +2660,7 @@
             mc.style.scrollBehavior = '';
             
             renderNav(); 
-            render(); 
+            render(true); // switching realms is a genuine new view — the one case this is worth replaying for
             updateCinematicHeader();
         }
 
@@ -2419,8 +2670,8 @@
             document.getElementById(id + '-page').classList.add('active'); 
             renderNav(); 
             if(id === 'stats') updateStats(); 
-            if(id === 'fame') renderHallOfFame();
-            if(id === 'achievements') renderAchievementHall();
+            if(id === 'fame') renderHallOfFame(true); // genuine navigation to this page
+            if(id === 'achievements') renderAchievementHall(true);
             if(id === 'tournament') {
                 document.getElementById('tourney-setup').classList.remove('hidden');
                 document.getElementById('tourney-match').classList.add('hidden');
@@ -2688,7 +2939,7 @@
                 if(migrationNeeded) saveSectionsConfig();
                 render(); updateStats(); updateCinematicHeader();
                 if(activePage === 'fame') renderHallOfFame();
-                checkUnsavedDraft(); checkAchievements(); if(callback) callback();
+                checkUnsavedDraft(); checkAchievements(); renderNewsTicker(); if(callback) callback();
             }; 
         }
 
@@ -2788,7 +3039,7 @@
         }
         
         function debounceSearch() { clearTimeout(searchTimeout); searchTimeout = setTimeout(render, 300); }
-        function clearCategoryFilter() { activeCategoryFilter = null; document.getElementById('active-filter-badge').classList.add('hidden'); document.getElementById('active-filter-badge').classList.remove('flex'); render(); }
+        function clearCategoryFilter() { activeCategoryFilter = null; document.getElementById('active-filter-badge').classList.add('hidden'); document.getElementById('active-filter-badge').classList.remove('flex'); render(true); }
         function toggleFavorite(e, id) { 
             if(e) e.stopPropagation(); 
             const i = vaultData.find(x => x.id === id); if(!i) return; 
@@ -2809,7 +3060,7 @@
             render(); 
         }
         function getDomainText(url) { try { return new URL(url).hostname.replace('www.', ''); } catch(e) { return 'Link'; } }
-        function setCategoryFilter(cat) { activeCategoryFilter = cat; document.getElementById('active-filter-text').innerText = cat; document.getElementById('active-filter-badge').classList.remove('hidden'); document.getElementById('active-filter-badge').classList.add('flex'); render(); }
+        function setCategoryFilter(cat) { activeCategoryFilter = cat; document.getElementById('active-filter-text').innerText = cat; document.getElementById('active-filter-badge').classList.remove('hidden'); document.getElementById('active-filter-badge').classList.add('flex'); render(true); }
 
         let currentFilteredList = [];
         let renderedCount = 0;
@@ -2822,9 +3073,8 @@
             // waiting behind a multi-second delay chain; everything past that just
             // renders immediately with the rest, which is imperceptible since it's
             // already offscreen/lazy-loaded at that point anyway.
-            const cineEnabled = isCinematicEnabled();
-            const cardEnterClass = cineEnabled ? 'card-enter' : '';
-            const cardEnterStyle = cineEnabled ? `style="animation-delay:${Math.min(idxInBatch, 18) * 28}ms"` : '';
+            const cardEnterClass = animateCurrentRenderPass ? 'card-enter' : '';
+            const cardEnterStyle = animateCurrentRenderPass ? `style="animation-delay:${Math.min(idxInBatch, 18) * 28}ms"` : '';
             const isChecked = bulkSelectedIds.has(item.id) ? 'checked' : ''; 
             const favHTML = `<div class="fav-btn" onclick="toggleFavorite(event, ${item.id})"><i id="fav-icon-${item.id}" class="${item.isFavorite ? 'fas fa-heart fav-active' : 'far fa-heart'}"></i></div>`; 
             const pinHTML = `<div class="fav-btn" style="right: 56px;" onclick="togglePinRecord(event, ${item.id})" title="Pin to top"><i id="pin-icon-${item.id}" class="fas fa-thumbtack ${item.isPinned ? 'text-yellow-400 -rotate-45' : 'text-white/60'}"></i></div>`; 
@@ -2910,7 +3160,8 @@
             }
         }
 
-        function render() { 
+        function render(animateEntrance = false) { 
+            animateCurrentRenderPass = animateEntrance && isCinematicEnabled();
             const grid = document.getElementById('vault-grid'); 
             const q = (document.getElementById('search-input-desk').value || document.getElementById('search-input-mob').value).toLowerCase().trim(); 
             const sortVal = document.getElementById('sort-engine-select').value; 
@@ -3390,26 +3641,41 @@
         // stripped WebViews (Via Browser, data-saver mode, etc.) once an await has used
         // up the page's "real user tap" trust. A genuine tap from the person themselves
         // doesn't have that problem, so this is always shown alongside the auto-attempt.
+        // Both of these fully rebuild the banner's contents each call (rather than
+        // reusing fixed child elements) so a multi-part export can list several links
+        // at once without one part's link silently overwriting another's before it's
+        // been tapped.
         function showManualDownloadLink(url, fileName, label) {
+            showManualDownloadLinks([{ url, fileName, label: label || 'Tap to Save Your Backup' }]);
+        }
+
+        function showManualDownloadLinks(items) {
             const banner = document.getElementById('download-ready-banner');
-            const link = document.getElementById('download-ready-link');
-            const text = document.getElementById('download-ready-text');
-            if (!banner || !link) return;
-            link.href = url; link.download = fileName;
-            if (text) text.innerText = label || 'Tap to Save Your Backup';
-            banner.classList.remove('hidden'); banner.classList.add('flex');
-            link.onclick = () => {
-                setTimeout(() => {
-                    banner.classList.add('hidden'); banner.classList.remove('flex');
-                    window.URL.revokeObjectURL(url);
-                }, 800);
-            };
-            // If it's never tapped, clean the URL up after a while instead of leaking it forever.
-            clearTimeout(window._dlBannerTimeout);
-            window._dlBannerTimeout = setTimeout(() => {
+            if (!banner || items.length === 0) return;
+            const urls = items.map(it => it.url);
+            const dismiss = () => {
                 banner.classList.add('hidden'); banner.classList.remove('flex');
-                window.URL.revokeObjectURL(url);
-            }, 5 * 60 * 1000);
+                banner.innerHTML = '';
+                urls.forEach(u => window.URL.revokeObjectURL(u));
+            };
+            banner.innerHTML = `<div class="pointer-events-auto flex flex-col gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black text-xs sm:text-sm px-5 py-4 rounded-2xl shadow-[0_8px_25px_rgba(16,185,129,0.4)] border border-emerald-300/50 max-w-[90vw]">
+                ${items.map((it, i) => `<a href="${it.url}" download="${it.fileName}" data-idx="${i}" class="manual-dl-link flex items-center gap-2 underline underline-offset-2 active:scale-95 transition-all"><i class="fas fa-download"></i> ${it.label}</a>`).join('')}
+                <button id="manual-dl-dismiss" class="text-[10px] opacity-80 underline self-start mt-1">Dismiss</button>
+            </div>`;
+            banner.classList.remove('hidden'); banner.classList.add('flex');
+            banner.querySelectorAll('.manual-dl-link').forEach(a => {
+                a.addEventListener('click', () => {
+                    // Mark this one done rather than tearing down the whole banner —
+                    // there may be other parts in the list still waiting to be tapped.
+                    a.classList.add('opacity-50', 'pointer-events-none');
+                    a.querySelector('i').className = 'fas fa-check';
+                });
+            });
+            const dismissBtn = document.getElementById('manual-dl-dismiss');
+            if (dismissBtn) dismissBtn.addEventListener('click', dismiss);
+            // Safety net if it's left untapped — clean up instead of leaking the URLs forever.
+            clearTimeout(window._dlBannerTimeout);
+            window._dlBannerTimeout = setTimeout(dismiss, 10 * 60 * 1000);
         }
 
         // ==========================
@@ -3419,6 +3685,60 @@
         // Blob.slice() each image straight out of the file without ever decoding it to base64/string.
         // BACKUP_MAGIC itself is declared at the very top of the script now — see the comment there.
         // ==========================
+
+        // "Exception Happened / Thread[main,5,main]" is an Android-level crash of the
+        // Via Browser app itself, not a JS error — that thread-dump format is how
+        // Android identifies a crashed native thread. It happens outside the page's
+        // JS engine entirely, so no try/catch in this file can ever catch it. Building
+        // one giant Blob for a 265MB+ vault, then handing it to a download/share API,
+        // needs the WebView to hold that whole thing in memory at once at least
+        // briefly — on a leaner WebView like Via's, that's what was taking the whole
+        // app down. Splitting the export into capped-size chunks means no single
+        // operation ever needs that much memory at once, on any device.
+        // Phones/weak browsers get the backup divided into a handful of balanced
+        // files (4-5 for a vault this size) instead of one giant Blob; desktop keeps
+        // the single file. Part count scales with size so a small vault isn't split
+        // for no reason: ~55MB per part, capped at 5 parts. If a device still
+        // crashes at this size, lower MOBILE_EXPORT_TARGET_PART_BYTES (more, smaller parts).
+        const MOBILE_EXPORT_MAX_PARTS = 5;
+        const MOBILE_EXPORT_TARGET_PART_BYTES = 55 * 1024 * 1024;
+
+        function isMobileExportEnvironment() {
+            try {
+                return document.documentElement.classList.contains('low-power')
+                    || /Android|iPhone|iPad|iPod|Mobile|\bVia\b/i.test(navigator.userAgent || '')
+                    || (navigator.maxTouchPoints > 1 && window.innerWidth < 900);
+            } catch (e) { return false; }
+        }
+
+        function itemImageBytes(item) {
+            const gallery = (item.gallery && item.gallery.length) ? item.gallery : (item.img ? [item.img] : []);
+            return gallery.reduce((sum, b) => sum + (b instanceof Blob ? b.size : 0), 0);
+        }
+
+        // Contiguous, size-balanced split: each item goes to the part its midpoint
+        // falls in, so parts come out roughly equal (not "40MB x6 + a small leftover")
+        // and a gallery is never split across two files.
+        function splitItemsEvenly(items, parts) {
+            const sizes = items.map(itemImageBytes);
+            const total = sizes.reduce((a, b) => a + b, 0);
+            if (parts <= 1 || total === 0) return [items];
+            const out = Array.from({ length: parts }, () => []);
+            let cum = 0;
+            items.forEach((item, i) => {
+                const idx = Math.min(parts - 1, Math.floor(((cum + sizes[i] / 2) / total) * parts));
+                out[idx].push(item);
+                cum += sizes[i];
+            });
+            return out.filter(p => p.length > 0);
+        }
+
+        function planExportParts(items) {
+            if (!isMobileExportEnvironment()) return [items];
+            const total = items.reduce((sum, it) => sum + itemImageBytes(it), 0);
+            const parts = Math.min(MOBILE_EXPORT_MAX_PARTS, Math.max(1, Math.ceil(total / MOBILE_EXPORT_TARGET_PART_BYTES)));
+            return splitItemsEvenly(items, parts);
+        }
 
         async function buildBackupBlob(items) {
             const imageParts = []; const imageSizes = []; const vaultOut = [];
@@ -3464,37 +3784,96 @@
             return { sectionsConfig: header.sectionsConfig || [], vault };
         }
 
-        async function backupToCloud() { if(activeSecurityMode === 'fake') return showToast("Cloud push blocked in boring mode", true); const u = auth.currentUser; if(!u || vaultData.length === 0) return showToast("Nothing to package...", true); showToast("Packaging desires..."); try { const blob = await buildBackupBlob(vaultData); await storage.ref('vault_max_backups/' + u.uid + '/data.json').put(blob); setAchievementFlag('everCloudSynced'); showToast("Cloud Fantasies Synced! ☁️💋"); } catch (err) { showToast("Upload failure: " + err.message, true); } }
+        async function backupToCloud() { if(activeSecurityMode === 'fake') return showToast("Cloud push blocked in boring mode", true); const u = auth.currentUser; if(!u || vaultData.length === 0) return showToast("Nothing to package...", true); showToast("Packaging desires..."); try { const blob = await buildBackupBlob(vaultData); await storage.ref('vault_max_backups/' + u.uid + '/data.json').put(blob); setAchievementFlag('everCloudSynced'); markBackupHappened(); renderNewsTicker(); showToast("Cloud Fantasies Synced! ☁️💋"); } catch (err) { showToast("Upload failure: " + err.message, true); } }
         async function restoreFromCloud() { if(activeSecurityMode === 'fake') return showToast("Cloud pull blocked in boring mode", true); const u = auth.currentUser; if(!u) return; if(!window.confirm("Pull down your Cloud Fantasies? We'll filter duplicates.")) return; try { const url = await storage.ref('vault_max_backups/' + u.uid + '/data.json').getDownloadURL(); const fetchedBlob = await (await fetch(url)).blob(); const data = (await isBackupContainer(fetchedBlob)) ? await parseBackupContainer(fetchedBlob) : JSON.parse(await fetchedBlob.text()); processImportedJSON(data); } catch (err) { console.error(err); showToast("Cloud restoration aborted", true); } }
         
+        // Fallback for when native share isn't available: hands over ONE part at a
+        // time and waits, so only one part's Blob is alive at once. (Listing every
+        // part's link together kept the whole vault in memory — the thing that was
+        // crashing Via in the first place.) Resolves true to continue, false to stop.
+        function promptPartDownload(url, fileName, label, isLast) {
+            return new Promise(resolve => {
+                const banner = document.getElementById('download-ready-banner');
+                if (!banner) { resolve(true); return; }
+                banner.innerHTML = `<div class="pointer-events-auto flex flex-col gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black text-xs sm:text-sm px-5 py-4 rounded-2xl shadow-[0_8px_25px_rgba(16,185,129,0.4)] border border-emerald-300/50 max-w-[90vw]">
+                    <a id="part-dl-link" href="${url}" download="${fileName}" class="flex items-center gap-2 underline underline-offset-2 active:scale-95 transition-all"><i class="fas fa-download"></i> ${label}</a>
+                    <div class="flex items-center gap-4 mt-1">
+                        <button id="part-dl-next" class="bg-white/20 hover:bg-white/30 rounded-lg px-3 py-1.5 text-[11px] active:scale-95 transition-all">${isLast ? 'Done' : 'Saved — next part'}</button>
+                        <button id="part-dl-stop" class="text-[10px] opacity-80 underline">Stop</button>
+                    </div>
+                </div>`;
+                banner.classList.remove('hidden'); banner.classList.add('flex');
+                const link = document.getElementById('part-dl-link');
+                link.addEventListener('click', () => { link.classList.add('opacity-60'); link.querySelector('i').className = 'fas fa-check'; });
+                const finish = (keepGoing) => {
+                    banner.classList.add('hidden'); banner.classList.remove('flex'); banner.innerHTML = '';
+                    setTimeout(() => window.URL.revokeObjectURL(url), 15000); // let a just-started download finish reading it
+                    resolve(keepGoing);
+                };
+                document.getElementById('part-dl-next').addEventListener('click', () => finish(true));
+                document.getElementById('part-dl-stop').addEventListener('click', () => finish(false));
+            });
+        }
+
         async function exportData(btn) {
             if(activeSecurityMode === 'fake') return showToast("Exporting blocked in boring mode", true);
             if(vaultData.length === 0) return showToast("Nothing to export", true);
-            showToast("Packing massive vault... Please don't close the tab.");
-            try {
-                const finalBlob = await buildBackupBlob(vaultData); const fileName = "forbidden_desires_backup_" + Date.now() + ".fdvault";
-                setAchievementFlag('everExported');
-                if (navigator.canShare && navigator.canShare({ files: [new File([finalBlob], fileName, { type: "application/octet-stream" })] })) {
-                    try { await navigator.share({ files: [new File([finalBlob], fileName, { type: "application/octet-stream" })], title: 'Vault Backup', text: 'Your WHORES EMPIRE  backup file.' }); return showToast("Export Shared Successfully!"); } catch (shareErr) { console.log("Share bypassed, falling back to direct download..."); }
+
+            const parts = planExportParts(vaultData);
+            const total = parts.length;
+            const multiPart = total > 1;
+            if (multiPart) showToast(`Splitting into ${total} files to keep your browser stable`);
+            setAchievementFlag('everExported');
+
+            const stamp = Date.now(); // shared so all parts sort/group together
+            for (let c = 0; c < total; c++) {
+                showToast(multiPart ? `Packing part ${c + 1} of ${total}...` : "Packing vault... Please don't close the tab.");
+                try {
+                    const finalBlob = await buildBackupBlob(parts[c]);
+                    const fileName = multiPart
+                        ? `forbidden_desires_backup_part${c + 1}of${total}_${stamp}.fdvault`
+                        : `forbidden_desires_backup_${stamp}.fdvault`;
+
+                    if (navigator.canShare && navigator.canShare({ files: [new File([finalBlob], fileName, { type: "application/octet-stream" })] })) {
+                        try {
+                            await navigator.share({ files: [new File([finalBlob], fileName, { type: "application/octet-stream" })], title: 'Vault Backup', text: multiPart ? `Backup part ${c + 1} of ${total}` : 'Your WHORES EMPIRE  backup file.' });
+                            continue; // shared — move to the next part
+                        } catch (shareErr) { console.log("Share bypassed for this part, falling back to direct download..."); }
+                    }
+
+                    const url = window.URL.createObjectURL(finalBlob);
+                    const dlAnchorElem = document.createElement('a'); dlAnchorElem.href = url; dlAnchorElem.download = fileName; dlAnchorElem.style.display = 'none'; document.body.appendChild(dlAnchorElem);
+                    try { dlAnchorElem.click(); } catch (clickErr) { console.log("Auto-click blocked, manual link will still work."); }
+                    document.body.removeChild(dlAnchorElem);
+                    const label = multiPart ? `Part ${c + 1} of ${total} — tap here if it didn't start saving` : "Backup ready — tap to save";
+                    const keepGoing = await promptPartDownload(url, fileName, label, c === total - 1);
+                    if (!keepGoing) { showToast(`Stopped after part ${c + 1} of ${total} — that backup is incomplete.`, true); return; }
+                } catch (e) {
+                    console.error(e);
+                    showToast(`Export failed on part ${c + 1} of ${total}: ` + e.message, true);
+                    return;
                 }
-                const url = window.URL.createObjectURL(finalBlob); const dlAnchorElem = document.createElement('a'); dlAnchorElem.href = url; dlAnchorElem.download = fileName; dlAnchorElem.style.display = 'none'; document.body.appendChild(dlAnchorElem); dlAnchorElem.click();
-                document.body.removeChild(dlAnchorElem);
-                showToast("Export ready!");
-                // Always show the real tappable link too - on Via Browser / weak WebViews the
-                // auto-click above can silently do nothing, so this guarantees a way out.
-                showManualDownloadLink(url, fileName, "Backup ready — tap to save");
-            } catch (e) { console.error(e); showToast("Export failed: " + e.message, true); }
+            }
+
+            markBackupHappened(); renderNewsTicker();
+            showToast(multiPart ? `All ${total} parts saved. To restore, pick all of them together in Import.` : "Export ready!");
         }
 
         async function importData(e, btn) {
             if(activeSecurityMode === 'fake') return showToast("Import blocked in boring mode", true);
-            const file = e.target.files[0]; if(!file) return;
-            try {
-                let data;
-                if (await isBackupContainer(file)) { showToast("Unpacking full backup..."); data = await parseBackupContainer(file); }
-                else { data = JSON.parse(await file.text()); }
-                await processImportedJSON(data);
-            } catch(err) { console.error(err); showToast("Corrupt backup file", true); }
+            const files = Array.from(e.target.files || []); if(files.length === 0) return;
+            // Multi-part backups: parts hold different items, so importing them one after
+            // another (in any order) rebuilds the whole vault; processImportedJSON merges by id.
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                try {
+                    if (files.length > 1) showToast(`Importing file ${i + 1} of ${files.length}...`);
+                    let data;
+                    if (await isBackupContainer(file)) { if (files.length === 1) showToast("Unpacking full backup..."); data = await parseBackupContainer(file); }
+                    else { data = JSON.parse(await file.text()); }
+                    await processImportedJSON(data);
+                } catch(err) { console.error(err); showToast(files.length > 1 ? `Couldn't read "${file.name}" — skipped` : "Corrupt backup file", true); }
+            }
             e.target.value = '';
         }
 
