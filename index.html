@@ -212,6 +212,10 @@
             filter: blur(25px) brightness(0.5) contrast(1.2);
             transform: scale(1.15) translateZ(0); 
         }
+        body.global-blur #viewer-main-video {
+            filter: blur(25px) brightness(0.5) contrast(1.2);
+            transform: scale(1.15) translateZ(0); 
+        }
         body.global-blur .img-box:hover img { filter: blur(15px) brightness(0.7); }
 
         .page { display: none; opacity: 0; transform: translateY(15px) scale(0.98); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -536,52 +540,88 @@
         @keyframes clockPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.65); } }
         @keyframes clockBlink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0.2; } }
 
-        /* ===== Tabloid news ticker ===== */
+        /* ===== Imperial Dispatch ticker =====
+           Muted metallic gold (#d4af37) rather than the saturated #FFD700 used for
+           the shimmer elsewhere — flat bright yellow is what made the first version
+           read as a cheap news chyron. Ivory body text, small-caps kicker, diamond
+           separators, hairlines that fade out at both ends. */
         .news-ticker-wrap {
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: linear-gradient(90deg, rgba(0,0,0,0.65), rgba(40,0,15,0.5));
-            border-top: 1px solid rgba(255,215,0,0.15);
-            border-bottom: 1px solid rgba(255,215,0,0.15);
-            padding: 7px 14px;
-            overflow: hidden;
+            gap: 16px;
+            padding: 11px 18px;
             position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(110% 260% at 0% 50%, rgba(212,175,55,0.08), transparent 55%),
+                linear-gradient(90deg, rgba(12,3,6,0.92), rgba(32,6,17,0.80));
         }
+        .news-ticker-wrap::before, .news-ticker-wrap::after {
+            content: ''; position: absolute; left: 0; right: 0; height: 1px; pointer-events: none;
+            background: linear-gradient(90deg, transparent, rgba(212,175,55,0.5) 20%, rgba(212,175,55,0.5) 80%, transparent);
+        }
+        .news-ticker-wrap::before { top: 0; }
+        .news-ticker-wrap::after { bottom: 0; opacity: 0.55; }
         .news-ticker-tag {
             flex-shrink: 0;
-            font-size: 9px;
-            font-weight: 900;
-            letter-spacing: 0.15em;
-            color: #ff4757;
-            text-transform: uppercase;
             display: flex;
             align-items: center;
-            gap: 5px;
-            padding-right: 12px;
-            border-right: 1px solid rgba(255,255,255,0.15);
-        }
-        .news-ticker-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff4757; animation: clockPulse 1.6s infinite; }
-        .news-ticker-viewport { flex-grow: 1; overflow: hidden; white-space: nowrap; position: relative; }
-        .news-ticker-track { display: inline-flex; gap: 60px; will-change: transform; }
-        .news-ticker-track.scrolling { animation-name: tickerScroll; animation-timing-function: linear; animation-iteration-count: infinite; }
-        .news-ticker-item {
-            display: inline-block;
+            gap: 10px;
+            padding-right: 18px;
+            position: relative;
             font-size: 10px;
             font-weight: 800;
-            letter-spacing: 0.03em;
-            color: #ffd700;
+            letter-spacing: 0.3em;
             text-transform: uppercase;
-            cursor: pointer;
-            opacity: 0.9;
-            transition: opacity 0.2s;
         }
-        .news-ticker-item:hover { opacity: 1; text-decoration: underline; }
+        .news-ticker-tag::after {
+            content: ''; position: absolute; right: 0; top: 50%; width: 1px; height: 16px;
+            transform: translateY(-50%);
+            background: linear-gradient(transparent, rgba(212,175,55,0.65), transparent);
+        }
+        .news-ticker-crest { color: #d4af37; font-size: 12px; filter: drop-shadow(0 0 6px rgba(212,175,55,0.45)); }
+        .news-ticker-viewport {
+            flex-grow: 1; overflow: hidden; white-space: nowrap; position: relative;
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+                    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+        }
+        .news-ticker-track { display: inline-flex; align-items: center; will-change: transform; }
+        .news-ticker-track.scrolling { animation-name: tickerScroll; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .news-ticker-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11.5px;
+            letter-spacing: 0.04em;
+            color: rgba(245,236,215,0.92);
+            cursor: pointer;
+            transition: color 0.25s;
+        }
+        .news-ticker-item::after {
+            content: ''; flex-shrink: 0; width: 5px; height: 5px; margin: 0 40px;
+            background: #d4af37; opacity: 0.7; transform: rotate(45deg);
+        }
+        .news-ticker-kicker {
+            font-size: 8.5px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase;
+            color: #d4af37; padding: 3px 7px; border: 1px solid rgba(212,175,55,0.38); border-radius: 3px;
+            transition: background 0.25s, border-color 0.25s;
+        }
+        .news-ticker-text { font-weight: 500; }
+        .news-ticker-em { font-style: normal; font-weight: 700; color: #f1d98a; }
+        .news-ticker-item:hover { color: #fff; }
+        .news-ticker-item:hover .news-ticker-kicker { background: rgba(212,175,55,0.16); border-color: rgba(212,175,55,0.75); }
+        /* One headline at a time (low-power) has nothing to separate from. */
+        .news-ticker-track:not(.scrolling) .news-ticker-item::after { display: none; }
+        /* Headlines are tappable, so let a hover pause the crawl. */
+        @media (hover: hover) { .news-ticker-wrap:hover .news-ticker-track.scrolling { animation-play-state: paused; } }
+        @media (max-width: 480px) { .news-ticker-tag-label { display: none; } .news-ticker-tag { padding-right: 14px; } }
         @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        /* Low-power: no continuous transform animation at all — renderNewsTicker()
-           swaps the single visible headline on a timer instead, which is just a
-           cheap textContent change, not a per-frame compositor cost. */
+        /* Low-power: no continuous animation — renderNewsTicker() swaps the single
+           visible headline on a timer instead (a plain text change, no per-frame
+           cost) — and the edge mask + label shimmer are dropped too. */
         .low-power .news-ticker-track.scrolling { animation: none !important; }
+        .low-power .news-ticker-viewport { -webkit-mask-image: none; mask-image: none; }
+        .low-power .news-ticker-tag-label { animation: none; }
     </style>
 </head>
 <body class="antialiased flex h-screen overflow-hidden global-blur">
@@ -786,7 +826,7 @@
              devices; rotates one headline at a time, no animation, on low-power
              ones (see renderNewsTicker()). -->
         <div id="news-ticker" class="news-ticker-wrap hidden">
-            <div class="news-ticker-tag"><span class="news-ticker-dot"></span> DAILY EDITION</div>
+            <div class="news-ticker-tag" title="Imperial Dispatch"><i class="fas fa-crown news-ticker-crest"></i><span class="news-ticker-tag-label legendary-text">Imperial Dispatch</span></div>
             <div class="news-ticker-viewport">
                 <div id="news-ticker-track" class="news-ticker-track"></div>
             </div>
@@ -846,6 +886,7 @@
                                     <select id="sort-engine-select" onchange="render();" class="!bg-transparent !border-none !shadow-none py-2 px-2 text-[10px] sm:text-xs font-bold outline-none cursor-pointer text-white">
                                         <option value="smart" class="text-black">Obsessions First</option>
                                         <option value="newest" class="text-black">Fresh Chicks</option>
+                                        <option value="updates" class="text-black">Updates First</option>
                                         <option value="oldest" class="text-black">Classic Crushes</option>
                                         <option value="title-az" class="text-black">A-Z Roster</option>
                                     </select>
@@ -1075,7 +1116,7 @@
                 <div id="drop-zone" onclick="handleDropZoneClick(event)" class="drop-zone w-full h-48 sm:h-56 rounded-2xl mb-2 flex flex-col items-center justify-center overflow-hidden cursor-pointer relative group touch-none">
                     <div id="image-preview" class="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
                         <i class="fa-solid fa-wine-glass text-3xl sm:text-4xl mb-3 opacity-50 group-hover:text-rose-400 transition-colors text-white drop-shadow-lg"></i>
-                        <span class="text-[10px] sm:text-xs font-black opacity-60 group-hover:opacity-100 transition-opacity text-white uppercase tracking-widest">Touch here to undress your files...</span>
+                        <span class="text-[10px] sm:text-xs font-black opacity-60 group-hover:opacity-100 transition-opacity text-white uppercase tracking-widest">Touch here to undress your files...</span><span class="text-[9px] opacity-40 mt-1 uppercase tracking-widest text-white">Pictures or videos</span>
                     </div>
                 </div>
                 <div id="multi-image-badge" class="hidden text-center text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2 drop-shadow-sm"></div>
@@ -1090,8 +1131,8 @@
                     <button onclick="document.getElementById('add-more-input').click(); event.stopPropagation();" class="bg-gradient-to-r from-rose-600 to-pink-500 text-white px-3 py-2 rounded-xl text-[10px] backdrop-blur-md shadow-[0_4px_15px_rgba(255,20,147,0.4)] font-black uppercase tracking-widest border border-rose-400/50 active:scale-95 transition-transform"><i class="fas fa-plus mr-1"></i> Add More</button>
                     <button onclick="document.getElementById('image-input').click(); event.stopPropagation();" class="bg-black/60 text-white px-3 py-2 rounded-xl text-[10px] backdrop-blur-md shadow-lg font-black uppercase tracking-widest border border-white/30 active:scale-95 transition-transform"><i class="fas fa-camera mr-1"></i> Swap</button>
                 </div>
-                <input type="file" id="image-input" class="hidden" accept="image/*" multiple onchange="handleFileSelect(event)">
-                <input type="file" id="add-more-input" class="hidden" accept="image/*" multiple onchange="appendFiles(event)">
+                <input type="file" id="image-input" class="hidden" accept="image/*,video/*" multiple onchange="handleFileSelect(event)">
+                <input type="file" id="add-more-input" class="hidden" accept="image/*,video/*" multiple onchange="appendFiles(event)">
             </div>
             
             <div class="space-y-3 sm:space-y-4 mb-6">
@@ -1520,10 +1561,67 @@
             }
         }
 
+        // ===== Video support + "update" flavor badge helpers =====
+        function isVideoBlob(b) { return b instanceof Blob && typeof b.type === 'string' && b.type.startsWith('video/'); }
+
+        // The cover is always an IMAGE: the first picture in the gallery, else the poster
+        // frame stored on item.img for video-only items, else nothing. Everything that
+        // puts an item into an <img> (grid, tournament, hall of fame) goes through this,
+        // so a video blob can never end up as an <img src>.
+        function coverBlobOf(item) {
+            const g = (item.gallery && item.gallery.length) ? item.gallery : (item.img ? [item.img] : []);
+            const firstPic = g.find(b => !isVideoBlob(b));
+            if (firstPic) return firstPic;
+            return (item.img && !isVideoBlob(item.img)) ? item.img : null;
+        }
+
+        function blobExt(blob) {
+            const sub = (blob && blob.type && blob.type.split('/')[1]) ? blob.type.split('/')[1] : 'jpg';
+            return ({ jpeg: 'jpg', quicktime: 'mov', 'x-matroska': 'mkv', 'x-msvideo': 'avi', 'x-m4v': 'm4v' })[sub] || sub;
+        }
+
+        // First frame of a video as a small JPEG, used as the cover of video-only items.
+        // Resolves null (never rejects) if the browser can't decode a frame in time.
+        function makeVideoPoster(videoBlob) {
+            return new Promise(resolve => {
+                const url = URL.createObjectURL(videoBlob);
+                const v = document.createElement('video');
+                v.muted = true; v.playsInline = true; v.preload = 'metadata';
+                let done = false, timer = null;
+                const finish = (blob) => { if (done) return; done = true; clearTimeout(timer); URL.revokeObjectURL(url); v.removeAttribute('src'); try { v.load(); } catch (e) {} resolve(blob); };
+                timer = setTimeout(() => finish(null), 8000);
+                v.addEventListener('error', () => finish(null));
+                v.addEventListener('loadeddata', () => { try { v.currentTime = Math.min(0.5, (v.duration || 1) / 10); } catch (e) { finish(null); } }, { once: true });
+                v.addEventListener('seeked', () => {
+                    try {
+                        const sc = Math.min(1, 640 / (v.videoWidth || 640));
+                        const c = document.createElement('canvas');
+                        c.width = Math.max(1, Math.round((v.videoWidth || 640) * sc)); c.height = Math.max(1, Math.round((v.videoHeight || 360) * sc));
+                        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+                        c.toBlob(b => finish(b), 'image/jpeg', 0.8);
+                    } catch (e) { finish(null); }
+                }, { once: true });
+                v.src = url;
+            });
+        }
+
+        // Flavor badge containing the word "update" (any case: "Update", "updated", "New Update...").
+        function hasUpdateBadge(item) { return /update/i.test((item && item.rarity) || ''); }
+        function updateTimeOf(item) { return item.updatedAt || item.timestamp || item.id || 0; }
+
+        function sortByUpdates() {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('vault-page').classList.add('active');
+            activePage = 'vault'; renderNav();
+            if (!isGlobalSearch) toggleGlobalSearch(); // updates can sit in any realm
+            document.getElementById('sort-engine-select').value = 'updates';
+            render(true);
+        }
+
         function getTourneyImage(item) {
             let u = blobUrlMap.get(item.id);
             if(!u) {
-                let img = (item.gallery && item.gallery.length > 0) ? item.gallery[0] : item.img;
+                let img = coverBlobOf(item);
                 if(img) u = typeof img === 'string' ? img : URL.createObjectURL(img);
                 else u = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48L3N2Zz4=';
             }
@@ -1814,22 +1912,36 @@
         // *whether* one ever had (the achievement flag).
         function markBackupHappened() { localStorage.setItem('vmax_last_backup_time', String(Date.now())); }
 
+        // Titles are user-entered and these strings go into innerHTML, so every
+        // dynamic value is escaped (the first version inserted raw titles — a title
+        // like "<3" or "a & b" would have broken the markup). em() is the escaped,
+        // highlighted form used for the key figure/title in each headline.
+        const tickerEsc = (v) => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const tickerEm = (v) => `<em class="news-ticker-em">${tickerEsc(v)}</em>`;
+
         function generateNewsHeadlines() {
             const headlines = [];
 
-            // Counted the same way setCategoryFilter('Unsorted') below actually filters
-            // (categories literally includes 'Unsorted') — previously this counted a
-            // slightly broader set (anything with an empty categories array too), so
-            // the headline's number and what clicking it actually showed could disagree.
+            // Items whose flavor badge says "update" lead the ticker, newest first. Anything
+            // written after the word ("Update - ch.12") is shown as the headline itself.
+            const updatedItems = vaultData.filter(hasUpdateBadge).sort((a, b) => updateTimeOf(b) - updateTimeOf(a));
+            updatedItems.slice(0, 8).forEach(it => {
+                const badge = (it.rarity || '').trim();
+                const plain = /^updated?$/i.test(badge);
+                headlines.push({ kicker: 'Update', text: plain ? `${tickerEm(it.title || 'Untitled')} has a fresh update` : `${tickerEm(it.title || 'Untitled')} — ${tickerEsc(badge)}`, action: () => openView(it.id) });
+            });
+            if (updatedItems.length > 8) headlines.push({ kicker: 'Updates', text: `${tickerEm(updatedItems.length - 8)} more updates waiting`, action: () => sortByUpdates() });
+
+            // Counted the same way setCategoryFilter('Unsorted') filters (categories
+            // literally includes 'Unsorted'), so the number matches what clicking shows.
             const unsortedCount = vaultData.filter(i => i.categories && i.categories.includes('Unsorted')).length;
             if (unsortedCount > 0) {
                 headlines.push({
-                    text: `SCANDAL: ${unsortedCount} Desire${unsortedCount === 1 ? '' : 's'} Still Unsorted — Chaos In The Vault`,
+                    kicker: 'Awaiting Order',
+                    text: `${tickerEm(unsortedCount)} desire${unsortedCount === 1 ? ' still awaits' : 's still await'} a realm`,
                     action: () => {
-                        // Unsorted items can be sitting in any realm, so this needs the
-                        // vault page, global search scope, and the actual filter applied —
-                        // switchSection(activeSectionId) (the old action) didn't do any of
-                        // that, it just silently reselected whatever realm was already active.
+                        // Unsorted items can sit in any realm, so this needs the vault page,
+                        // global search scope, and the actual filter applied.
                         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                         document.getElementById('vault-page').classList.add('active');
                         activePage = 'vault';
@@ -1852,20 +1964,20 @@
                 });
                 if (closest) {
                     const remaining = closest.target - closest.current;
-                    headlines.push({ text: `DEVELOPING: '${closest.a.title}' Just ${remaining} Away — Empire On Edge`, action: () => nav('achievements', document.getElementById('desk-nav-achievements')) });
+                    headlines.push({ kicker: 'Within Reach', text: `${tickerEm(closest.a.title)} is just ${tickerEm(remaining)} away`, action: () => nav('achievements', document.getElementById('desk-nav-achievements')) });
                 }
             } catch (e) { /* achievement engine not ready yet — skip this headline for now */ }
 
             const streak = parseInt(localStorage.getItem('vmax_curfew_streak') || '0', 10);
             if (streak >= 3) {
-                headlines.push({ text: `EXCLUSIVE: ${streak}-Night Discipline Streak Holding Strong`, action: () => nav('achievements', document.getElementById('desk-nav-achievements')) });
+                headlines.push({ kicker: 'Discipline', text: `${tickerEm(streak + ' nights')} held — the Empire stands firm`, action: () => nav('achievements', document.getElementById('desk-nav-achievements')) });
             }
 
             const lastBackup = parseInt(localStorage.getItem('vmax_last_backup_time') || '0', 10);
             const daysSince = lastBackup ? Math.floor((Date.now() - lastBackup) / 86400000) : null;
             if (vaultData.length > 0 && (daysSince === null || daysSince >= 7)) {
-                const label = daysSince === null ? 'Never Backed Up' : `${daysSince} Days Unprotected`;
-                headlines.push({ text: `URGENT: Empire's Secrets ${label} — Backup Now`, action: () => nav('settings', document.getElementById('desk-nav-settings')) });
+                const msg = daysSince === null ? 'Your vault has never been secured' : `Your vault has gone ${tickerEm(daysSince + ' days')} unprotected`;
+                headlines.push({ kicker: 'Advisory', text: `${msg} — back it up`, action: () => nav('settings', document.getElementById('desk-nav-settings')) });
             }
 
             const THREE_DAYS = 3 * 86400000;
@@ -1873,25 +1985,25 @@
                 .filter(i => { const sec = customSections.find(s => s.id === i.sectionId); return sec && sec.isLegendary && i.timestamp && (Date.now() - i.timestamp) < THREE_DAYS; })
                 .sort((a, b) => b.timestamp - a.timestamp)[0];
             if (recentLegendary) {
-                headlines.push({ text: `EXCLUSIVE: Legendary Realm Welcomes '${recentLegendary.title || 'A New Obsession'}'`, action: () => openView(recentLegendary.id) });
+                headlines.push({ kicker: 'New Arrival', text: `${tickerEm(recentLegendary.title || 'A new obsession')} joins a Legendary realm`, action: () => openView(recentLegendary.id) });
             }
 
             try {
                 const history = JSON.parse(localStorage.getItem('v_max_tourney_history') || '[]');
                 if (history.length > 0) {
                     const last = history[history.length - 1];
-                    headlines.push({ text: `BREAKING: '${last.title || 'A Champion'}' Reigns As Latest Champion`, action: () => nav('fame', document.getElementById('desk-nav-fame')) });
+                    headlines.push({ kicker: 'Reigning Champion', text: `${tickerEm(last.title || 'A champion')} wears the crown`, action: () => nav('fame', document.getElementById('desk-nav-fame')) });
                 }
             } catch (e) {}
 
             const favorites = vaultData.filter(i => i.isFavorite);
             if (favorites.length > 0) {
                 const pick = favorites[Math.floor(Math.random() * favorites.length)];
-                headlines.push({ text: `RUMORED: '${pick.title || 'This One'}' Remains A Fan Favorite`, action: () => openView(pick.id) });
+                headlines.push({ kicker: 'Favored', text: `${tickerEm(pick.title || 'This one')} remains among your favorites`, action: () => openView(pick.id) });
             }
 
             // Always-available filler so the ticker is never empty, even on a fresh vault.
-            headlines.push({ text: `REPORT: The Empire Now Holds ${vaultData.length} Desire${vaultData.length === 1 ? '' : 's'} Across ${customSections.length} Realm${customSections.length === 1 ? '' : 's'}`, action: null });
+            headlines.push({ kicker: 'The Realm', text: `${tickerEm(vaultData.length)} desire${vaultData.length === 1 ? '' : 's'} across ${tickerEm(customSections.length)} realm${customSections.length === 1 ? '' : 's'}`, action: null });
 
             return headlines;
         }
@@ -1905,7 +2017,7 @@
             const headlines = generateNewsHeadlines();
             wrap.classList.remove('hidden');
 
-            const buildSpan = (h, idx) => `<span class="news-ticker-item" data-idx="${idx}">${h.text}</span>`;
+            const buildSpan = (h, idx) => `<span class="news-ticker-item" data-idx="${idx}"><span class="news-ticker-kicker">${tickerEsc(h.kicker)}</span><span class="news-ticker-text">${h.text}</span></span>`;
             clearInterval(window._tickerRotateInterval);
 
             const bindClicks = () => {
@@ -2853,9 +2965,12 @@
 
         function renderPreview() {
             let currentBlob = currentBlobs[draftPreviewIndex];
+            const previewIsVideo = isVideoBlob(currentBlob);
+            const coverIdx = Math.max(0, currentBlobs.findIndex(b => !isVideoBlob(b)));
             let u = null;
             if (currentBlob) {
-                u = typeof currentBlob === 'string' ? currentBlob : URL.createObjectURL(currentBlob);
+                if (window._draftPreviewUrl) { URL.revokeObjectURL(window._draftPreviewUrl); window._draftPreviewUrl = null; }
+                if (typeof currentBlob === 'string') u = currentBlob; else { u = URL.createObjectURL(currentBlob); window._draftPreviewUrl = u; }
             } else if (editId) {
                 u = blobUrlMap.get(editId);
             }
@@ -2875,7 +2990,7 @@
                         <button onclick="nextDraftImg(event)" class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/20 z-20 transition-all draft-img-btn shadow-lg backdrop-blur-md border border-white/20"><i class="fas fa-chevron-right text-xs"></i></button>
                     `;
                     
-                    if (draftPreviewIndex !== 0) {
+                    if (previewIsVideo) { /* videos have no "primary": the cover is the first picture */ } else if (draftPreviewIndex !== coverIdx) {
                         extraControls += `<button onclick="setDraftPrimary(event)" class="absolute top-3 right-3 bg-gradient-to-r from-rose-600 to-pink-500 hover:scale-105 text-white text-[9px] px-3 py-1.5 rounded-lg shadow-lg z-20 uppercase font-black tracking-widest border border-rose-400 active:scale-95 transition-all draft-img-btn">Set Cover</button>`;
                     } else {
                         extraControls += `<div class="absolute top-3 right-3 bg-emerald-500/80 text-white text-[9px] px-3 py-1.5 rounded-lg shadow-lg z-20 uppercase font-black tracking-widest border border-emerald-400 backdrop-blur-md flex items-center"><i class="fas fa-check mr-1.5"></i>Cover</div>`;
@@ -2883,17 +2998,17 @@
                 } else { badge.classList.add('hidden'); }
 
                 document.getElementById('image-preview').innerHTML = `
-                    <img id="preview-image-elem" src="${u}" style="object-position: ${currentImgPosition.x}% ${currentImgPosition.y}%; transform: scale(${currentImgScale || 1});" class="w-full h-full object-cover rounded-2xl shadow-inner absolute inset-0 pointer-events-none transition-none">
-                    <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] px-5 py-2 rounded-full pointer-events-none backdrop-blur-md z-10 flex items-center gap-2 font-black tracking-widest shadow-[0_5px_15px_rgba(0,0,0,0.5)] border border-white/20 uppercase"><i class="fas fa-hand-paper opacity-80 text-cyan-300"></i> Caress & Pan</div>
+                    ${previewIsVideo ? `<video id="preview-video-elem" src="${u}" controls muted playsinline preload="metadata" class="draft-img-btn w-full h-full object-contain bg-black rounded-2xl absolute inset-0 z-10"></video>` : `<img id="preview-image-elem" src="${u}" style="object-position: ${currentImgPosition.x}% ${currentImgPosition.y}%; transform: scale(${currentImgScale || 1});" class="w-full h-full object-cover rounded-2xl shadow-inner absolute inset-0 pointer-events-none transition-none">`}
+                    ${previewIsVideo ? '' : `<div class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] px-5 py-2 rounded-full pointer-events-none backdrop-blur-md z-10 flex items-center gap-2 font-black tracking-widest shadow-[0_5px_15px_rgba(0,0,0,0.5)] border border-white/20 uppercase"><i class="fas fa-hand-paper opacity-80 text-cyan-300"></i> Caress & Pan</div>`}
                     ${extraControls}
                 `;
                 
                 const actionBtns = document.getElementById('img-action-btns');
                 if(actionBtns) actionBtns.classList.remove('hidden');
-                if(zw) { zw.classList.remove('hidden'); document.getElementById('manual-zoom-slider').value = currentImgScale || 1; }
+                if(zw) { if (previewIsVideo) zw.classList.add('hidden'); else { zw.classList.remove('hidden'); document.getElementById('manual-zoom-slider').value = currentImgScale || 1; } }
 
             } else {
-                document.getElementById('image-preview').innerHTML = `<i class="fas fa-kiss-wink-heart text-3xl sm:text-4xl mb-4 opacity-50 group-hover:text-rose-400 transition-colors text-white drop-shadow-lg"></i><span class="text-[10px] sm:text-xs font-black opacity-60 group-hover:opacity-100 transition-opacity uppercase tracking-widest text-white">Touch here to undress your files...</span>`;
+                document.getElementById('image-preview').innerHTML = `<i class="fas fa-kiss-wink-heart text-3xl sm:text-4xl mb-4 opacity-50 group-hover:text-rose-400 transition-colors text-white drop-shadow-lg"></i><span class="text-[10px] sm:text-xs font-black opacity-60 group-hover:opacity-100 transition-opacity uppercase tracking-widest text-white">Touch here to undress your files...</span><span class="text-[9px] opacity-40 mt-1 uppercase tracking-widest text-white">Pictures or videos</span>`;
                 const actionBtns = document.getElementById('img-action-btns');
                 if(actionBtns) actionBtns.classList.add('hidden');
                 if(zw) zw.classList.add('hidden');
@@ -3089,12 +3204,17 @@
             const dObj = new Date(item.timestamp || item.id); const dStr = dObj.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
             const linkCountHTML = (item.urls && item.urls.length > 0) ? `<span class="text-[8px] font-bold text-white uppercase bg-rose-500/20 px-2 py-1 rounded-md border border-rose-500/30 shadow-sm ml-2"><i class="fas fa-link text-rose-300 mr-1"></i> ${item.urls.length} Links</span>` : '';
             
-            let coverImage = item.gallery && item.gallery.length > 0 ? item.gallery[0] : item.img;
+            let coverImage = coverBlobOf(item);
             let u = blobUrlMap.get(item.id); if(!u && coverImage) { u = typeof coverImage === 'string' ? coverImage : URL.createObjectURL(coverImage); blobUrlMap.set(item.id, u); } else if (!u) u = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48L3N2Zz4='; 
             
             let posX = item.imgPos?.x ?? 50; let posY = item.imgPos?.y ?? 50; let scaleVal = item.imgScale ?? 1; 
             let badgeHtml = item.rarity && item.rarity.trim() !== '' ? `<div class="absolute top-3 left-3 px-3 py-1 text-[9px] uppercase tracking-widest font-black rounded-lg custom-dynamic-badge z-30 shadow-lg pointer-events-none">${item.rarity}</div>` : '';
-            let multiBadge = item.gallery && item.gallery.length > 1 ? `<div class="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] font-black px-2.5 py-1 rounded-md z-30 backdrop-blur-md shadow-lg border border-white/20 flex items-center gap-1.5"><i class="fas fa-images text-rose-300"></i> ${item.gallery.length}</div>` : '';
+            const picCount = item.gallery ? item.gallery.filter(b => !isVideoBlob(b)).length : 0;
+            const vidCount = item.gallery ? item.gallery.filter(isVideoBlob).length : 0;
+            let mediaParts = '';
+            if (picCount > 1) mediaParts += `<span class="flex items-center gap-1.5"><i class="fas fa-images text-rose-300"></i> ${picCount}</span>`;
+            if (vidCount > 0) mediaParts += `<span class="flex items-center gap-1.5"><i class="fas fa-play text-rose-300"></i> ${vidCount}</span>`;
+            let multiBadge = mediaParts ? `<div class="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] font-black px-2.5 py-1 rounded-md z-30 backdrop-blur-md shadow-lg border border-white/20 flex items-center gap-2.5">${mediaParts}</div>` : '';
             const pinClass = item.isPinned ? 'pinned-item' : '';
             
             let sectionLabel = '';
@@ -3174,6 +3294,7 @@
             filtered.sort((a, b) => { 
                 const aPinned = a.isPinned || false; const bPinned = b.isPinned || false;
                 if (aPinned !== bPinned) return aPinned ? -1 : 1; 
+                if (sortVal === 'updates') { const au = hasUpdateBadge(a), bu = hasUpdateBadge(b); if (au !== bu) return au ? -1 : 1; if (au) return updateTimeOf(b) - updateTimeOf(a); return (b.timestamp || b.id) - (a.timestamp || a.id); }
                 if (sortVal === 'smart') { if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1; return (b.timestamp || b.id) - (a.timestamp || a.id); }
                 if (sortVal === 'newest') return (b.timestamp || b.id) - (a.timestamp || a.id); 
                 if (sortVal === 'oldest') return (a.timestamp || a.id) - (b.timestamp || b.id); 
@@ -3204,7 +3325,7 @@
             let touchStartX = 0; let initialPinchDistance = null;
             el.addEventListener('wheel', (e) => { e.preventDefault(); if(e.deltaY < 0) { zoomViewerImage(0.15); } else { zoomViewerImage(-0.15); } }, {passive: false});
             const startDrag = (e) => {
-                if (e.target.closest('button') || e.target.closest('#viewer-info-overlay')) return;
+                if (e.target.closest('button') || e.target.closest('video') || e.target.closest('#viewer-info-overlay')) return;
                 vHasDragged = false;
                 if (e.type === 'touchstart' && e.touches.length === 2) { initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); return; }
                 if (viewerZoomLevel > 1) {
@@ -3223,7 +3344,7 @@
             };
             windowEndDragViewer = (e) => {
                 if(e.type === 'touchend' && e.touches.length < 2) { initialPinchDistance = null; }
-                if (isViewerDragging) { isViewerDragging = false; img.style.cursor = viewerZoomLevel > 1 ? 'grab' : 'default'; } else if (viewerZoomLevel === 1 && !e.target.closest('button') && !e.target.closest('#viewer-info-overlay')) {
+                if (isViewerDragging) { isViewerDragging = false; img.style.cursor = viewerZoomLevel > 1 ? 'grab' : 'default'; } else if (viewerZoomLevel === 1 && !e.target.closest('button') && !e.target.closest('video') && !e.target.closest('#viewer-info-overlay')) {
                     let touchEndX = e.type.includes('mouse') ? e.pageX : (e.changedTouches ? e.changedTouches[0].screenX : 0);
                     if (touchStartX - touchEndX > 50) nextViewerImage(); else if (touchEndX - touchStartX > 50) prevViewerImage();
                 }
@@ -3285,6 +3406,7 @@
                     <button onclick="event.stopPropagation(); closeViewModal();" class="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 hover:bg-red-500 hover:border-red-400 text-white rounded-full flex items-center justify-center backdrop-blur-xl border border-white/20 transition-all shadow-lg active:scale-90"><i class="fas fa-times text-lg"></i></button>
                 </div>
                 <img id="viewer-main-img" src="" decoding="async" class="w-full h-full object-contain pointer-events-auto shadow-2xl" style="transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);" oncontextmenu="return false;">
+                <video id="viewer-main-video" class="hidden w-full h-full object-contain pointer-events-auto shadow-2xl" controls playsinline preload="metadata" oncontextmenu="return false;"></video>
                 ${multiControls}
                 <div id="viewer-select-bar" class="hidden absolute bottom-0 left-0 w-full bg-black/85 backdrop-blur-xl border-t border-white/10 z-[2060] flex-col" onclick="event.stopPropagation();">
                     <div class="flex items-center justify-between px-4 pt-2.5 pb-2">
@@ -3337,7 +3459,7 @@
                 const idx = indices[0];
                 const blob = await resolveGalleryBlob(viewerGallery[idx]);
                 if (!blob) { showToast("Couldn't fetch that image (blocked link?)", true); return; }
-                const ext = (blob.type && blob.type.split('/')[1]) ? blob.type.split('/')[1].replace('jpeg', 'jpg') : 'jpg';
+                const ext = blobExt(blob);
                 const fileName = viewerGallery.length > 1 ? `${viewerCurrentItemTitle}_${idx + 1}.${ext}` : `${viewerCurrentItemTitle}.${ext}`;
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a'); a.href = url; a.download = fileName; a.style.display = 'none';
@@ -3354,7 +3476,7 @@
                 for (const idx of indices) {
                     const blob = await resolveGalleryBlob(viewerGallery[idx]);
                     if (!blob) { skipped++; continue; }
-                    const ext = (blob.type && blob.type.split('/')[1]) ? blob.type.split('/')[1].replace('jpeg', 'jpg') : 'jpg';
+                    const ext = blobExt(blob);
                     zip.file(`${viewerCurrentItemTitle}_${idx + 1}.${ext}`, blob);
                     added++;
                     if (added % 5 === 0) await new Promise(r => setTimeout(r, 5)); // keep the UI responsive on big galleries
@@ -3411,7 +3533,7 @@
                 if (!url) { url = (typeof src === 'string') ? src : URL.createObjectURL(src); viewerThumbUrls[i] = url; }
                 const isSel = viewerSelectedIndices.has(i);
                 html += `<button onclick="event.stopPropagation(); toggleViewerThumbSelect(${i});" class="relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${isSel ? 'border-rose-500' : 'border-white/20'} transition-all">
-                    <img src="${url}" class="w-full h-full object-cover" loading="lazy">
+                    ${isVideoBlob(src) ? '<div class="w-full h-full bg-black/70 flex items-center justify-center"><i class="fas fa-play text-white/80"></i></div>' : `<img src="${url}" class="w-full h-full object-cover" loading="lazy">`}
                     ${isSel ? `<div class="absolute inset-0 bg-rose-600/30 flex items-center justify-center"><i class="fas fa-check-circle text-white text-lg drop-shadow"></i></div>` : ''}
                 </button>`;
             });
@@ -3450,19 +3572,26 @@
             const blob = viewerGallery[viewerCurrentIdx];
             let url;
             if (typeof blob === 'string') { url = blob; } else { url = URL.createObjectURL(blob); viewerCurrentObjectUrl = url; }
-            document.getElementById('viewer-main-img').src = url;
+            const mainImg = document.getElementById('viewer-main-img'); const mainVid = document.getElementById('viewer-main-video');
+            if (isVideoBlob(blob) && mainVid) {
+                mainImg.classList.add('hidden'); mainVid.classList.remove('hidden'); mainVid.src = url;
+            } else {
+                if (mainVid) { mainVid.pause(); mainVid.removeAttribute('src'); mainVid.load(); mainVid.classList.add('hidden'); }
+                mainImg.classList.remove('hidden'); mainImg.src = url;
+            }
             const indicator = document.getElementById('viewer-gallery-indicator'); if(indicator) indicator.innerText = `${viewerCurrentIdx + 1} / ${viewerGallery.length}`;
             resetViewerZoom(); 
         }
 
         function closeViewModal() {
+            const mv = document.getElementById('viewer-main-video'); if (mv) mv.pause();
             const modal = document.getElementById('full-viewer'); modal.style.opacity = 0;
             setTimeout(() => { modal.classList.add('hidden'); resetViewerZoom(); if (viewerCurrentObjectUrl) { URL.revokeObjectURL(viewerCurrentObjectUrl); viewerCurrentObjectUrl = null; } Object.values(viewerThumbUrls).forEach(u => { if (typeof u === 'string' && u.startsWith('blob:')) URL.revokeObjectURL(u); }); viewerThumbUrls = {}; viewerSelectMode = false; viewerSelectedIndices = new Set(); if (windowDoDragViewer) { window.removeEventListener('mousemove', windowDoDragViewer); window.removeEventListener('touchmove', windowDoDragViewer); } if (windowEndDragViewer) { window.removeEventListener('mouseup', windowEndDragViewer); window.removeEventListener('touchend', windowEndDragViewer); } }, 300);
         }
 
         function addLinkField(label = "", url = "") { const c = document.getElementById('links-container'); const d = document.createElement('div'); d.className = "flex gap-2 url-row"; d.innerHTML = `<input type="text" placeholder="Name" value="${label}" oninput="trackDraftChanges()" class="w-1/3 bg-white/5 rounded-xl p-3 outline-none font-medium text-xs link-label-input text-white border border-white/10 shadow-inner"><input type="url" placeholder="https://..." value="${url}" oninput="trackDraftChanges()" class="w-2/3 bg-white/5 rounded-xl p-3 outline-none font-medium text-xs link-url-input text-white border border-white/10 shadow-inner"><button onclick="this.parentElement.remove(); trackDraftChanges();" class="w-10 flex-shrink-0 flex items-center justify-center text-red-400 bg-red-500/20 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm"><i class="fas fa-trash-alt text-xs"></i></button>`; c.appendChild(d); }
         
-        function saveEntry() { 
+        async function saveEntry() { 
             if(activeSecurityMode === 'fake') return showToast("Saving is blocked in boring mode", true);
             const t = document.getElementById('title-input').value.trim(); if(!t) return showToast("Give them a name first!", true); 
             const isDuplicateName = vaultData.some(i => i.id !== editId && i.title && i.title.toLowerCase() === t.toLowerCase());
@@ -3492,6 +3621,14 @@
             let tagStr = document.getElementById('category-input').value.trim(); let cats = tagStr.split(',').map(x => x.replace('#','').trim()).filter(Boolean); if (cats.length === 0) cats = ['Unsorted']; 
             let mentionsList = [...currentMentionsArray];
             let finalGallery = currentBlobs.length > 0 ? currentBlobs : (editId ? vaultData.find(x=>x.id===editId)?.gallery : []);
+            // Cover is always an image. Video-only items get a poster frame (reused if the same
+            // first video is still there from the last save, so editing doesn't re-decode it).
+            let coverImg = finalGallery.find(b => !isVideoBlob(b)) || null;
+            if (!coverImg && finalGallery.some(isVideoBlob)) {
+                const prev = editId ? vaultData.find(x => x.id === editId) : null;
+                if (prev && prev.img && !isVideoBlob(prev.img) && prev.gallery && prev.gallery[0] === finalGallery[0]) coverImg = prev.img;
+                else { btn.innerText = "Making preview..."; coverImg = await makeVideoPoster(finalGallery.find(isVideoBlob)); }
+            }
 
             const isEditAction = !!editId; const actionTitle = t; let changeDetails = "";
             if (isEditAction) {
@@ -3511,7 +3648,7 @@
             let championships = 0; let matchesWon = 0;
             if (isEditAction) { const oldData = vaultData.find(x=>x.id===editId); championships = oldData?.championships || 0; matchesWon = oldData?.matchesWon || 0; }
 
-            const e = { id: editId || Date.now(), timestamp: editId ? (vaultData.find(x=>x.id===editId)?.timestamp || Date.now()) : Date.now(), title: t, sectionId: secId, categories: cats, bioLink: bio, urls: links, rarity: document.getElementById('art-rarity').value.trim(), isFavorite: editId ? vaultData.find(x=>x.id===editId)?.isFavorite : false, isPinned: editId ? (vaultData.find(x=>x.id===editId)?.isPinned || false) : false, img: finalGallery[0] || null, gallery: finalGallery, imgPos: { x: currentImgPosition.x, y: currentImgPosition.y }, imgScale: currentImgScale || 1, mentions: mentionsList, championships: championships, matchesWon: matchesWon }; 
+            const e = { id: editId || Date.now(), timestamp: editId ? (vaultData.find(x=>x.id===editId)?.timestamp || Date.now()) : Date.now(), title: t, sectionId: secId, categories: cats, bioLink: bio, urls: links, rarity: document.getElementById('art-rarity').value.trim(), isFavorite: editId ? vaultData.find(x=>x.id===editId)?.isFavorite : false, isPinned: editId ? (vaultData.find(x=>x.id===editId)?.isPinned || false) : false, img: coverImg, gallery: finalGallery, imgPos: { x: currentImgPosition.x, y: currentImgPosition.y }, imgScale: currentImgScale || 1, mentions: mentionsList, championships: championships, matchesWon: matchesWon, updatedAt: Date.now() }; 
             
             const tx = db.transaction(STORE_NAME, "readwrite"); const store = tx.objectStore(STORE_NAME); store.put(e); 
 
@@ -3556,8 +3693,19 @@
             renderPreview(); openModal(); 
         }
         
-        function handleFileSelect(e) { if(e.target.files.length) { currentBlobs = Array.from(e.target.files).filter(f => f.type.startsWith('image/')); if(currentBlobs.length === 0) return showToast("Must be an image.", true); draftPreviewIndex = 0; currentImgPosition = {x:50,y:50}; currentImgScale = 1; renderPreview(); } e.target.value = ''; } 
-        function appendFiles(e) { if(e.target.files.length) { const newFiles = Array.from(e.target.files).filter(f => f.type.startsWith('image/')); if(newFiles.length === 0) return showToast("Must be an image.", true); currentBlobs = currentBlobs.concat(newFiles); showToast(`Added ${newFiles.length} more picture(s)!`); renderPreview(); } e.target.value = ''; }
+        // Videos live in the same item.gallery as pictures; the cover is always an
+        // image (see coverBlobOf). A big video is the one thing that can push a phone
+        // browser over its memory limit, so ask before accepting one.
+        function acceptUploadFiles(fileList) {
+            const BIG_VIDEO_BYTES = 100 * 1024 * 1024;
+            const ok = Array.from(fileList || []).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+            if (ok.length === 0) { showToast("Pick a picture or a video.", true); return []; }
+            const big = ok.filter(f => f.type.startsWith('video/') && f.size > BIG_VIDEO_BYTES);
+            if (big.length && !window.confirm(`${big.length} video(s) are over 100MB. Large videos make backups slow and can crash phone browsers. Add anyway?`)) return ok.filter(f => !big.includes(f));
+            return ok;
+        }
+        function handleFileSelect(e) { if(e.target.files.length) { const files = acceptUploadFiles(e.target.files); if(files.length === 0) { e.target.value = ''; return; } currentBlobs = files; draftPreviewIndex = 0; currentImgPosition = {x:50,y:50}; currentImgScale = 1; renderPreview(); } e.target.value = ''; }
+        function appendFiles(e) { if(e.target.files.length) { const newFiles = acceptUploadFiles(e.target.files); if(newFiles.length === 0) { e.target.value = ''; return; } currentBlobs = currentBlobs.concat(newFiles); showToast(`Added ${newFiles.length} more file(s)!`); renderPreview(); } e.target.value = ''; }
 
         function openModal() { 
             if(activeSecurityMode === 'fake') return showToast("Blocked in boring mode", true); 
@@ -3750,6 +3898,10 @@
                     if (b instanceof Blob) { galleryRefs.push({ ref: imageParts.length, type: b.type || 'image/jpeg' }); imageParts.push(b); imageSizes.push(b.size); }
                     else if (typeof b === 'string') { galleryRefs.push({ inline: b }); } // legacy string fallback, rare
                 }
+                // A video-only item's cover is a poster frame that isn't in the gallery, so it
+                // travels as one extra image part (posterRef). Items with pictures re-derive their cover.
+                const posterNeeded = srcGallery.length > 0 && srcGallery.every(isVideoBlob) && items[idx].img instanceof Blob && !isVideoBlob(items[idx].img);
+                if (posterNeeded) { cloned.posterRef = { ref: imageParts.length, type: items[idx].img.type || 'image/jpeg' }; imageParts.push(items[idx].img); imageSizes.push(items[idx].img.size); }
                 cloned.gallery = galleryRefs; cloned.img = null;
                 vaultOut.push(cloned);
                 if (idx % 25 === 0) await new Promise(r => setTimeout(r, 0));
@@ -3778,7 +3930,10 @@
                     if (ref && typeof ref === 'object' && 'inline' in ref) return ref.inline;
                     return null;
                 }).filter(Boolean);
-                out.gallery = gallery; out.img = gallery[0] || null;
+                out.gallery = gallery;
+                if (out.posterRef && imageBlobs[out.posterRef.ref]) { const rawP = imageBlobs[out.posterRef.ref]; out.img = out.posterRef.type ? rawP.slice(0, rawP.size, out.posterRef.type) : rawP; }
+                else out.img = gallery.find(b => !isVideoBlob(b)) || null;
+                delete out.posterRef;
                 return out;
             });
             return { sectionsConfig: header.sectionsConfig || [], vault };
@@ -3885,7 +4040,15 @@
         // duplicate" rather than "lost photo".
         async function blobHash(blob) {
             try {
-                const buf = await blob.arrayBuffer();
+                // Videos can be 100MB+; hashing one fully means reading it all into memory.
+                // Above 8MB, hash size + type + first/last 256KB instead — plenty to tell two
+                // different recordings apart, without the memory spike.
+                let buf;
+                if (blob.size > 8 * 1024 * 1024) {
+                    const SAMPLE = 256 * 1024;
+                    const parts = [new TextEncoder().encode(blob.size + '|' + blob.type), new Uint8Array(await blob.slice(0, SAMPLE).arrayBuffer()), new Uint8Array(await blob.slice(blob.size - SAMPLE).arrayBuffer())];
+                    buf = await new Blob(parts).arrayBuffer();
+                } else { buf = await blob.arrayBuffer(); }
                 const hashBuf = await crypto.subtle.digest('SHA-256', buf);
                 return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
             } catch (e) { return null; }
@@ -3946,7 +4109,13 @@
 
                 const existingGalleryBlobs = existing ? ((existing.gallery && existing.gallery.length) ? existing.gallery : (existing.img ? [existing.img] : [])) : [];
                 processedItem.gallery = await mergeGalleries(existingGalleryBlobs, importedGalleryBlobs);
-                processedItem.img = processedItem.gallery[0] || null;
+                const firstPic = processedItem.gallery.find(b => !isVideoBlob(b));
+                if (firstPic) processedItem.img = firstPic;
+                else if (processedItem.gallery.some(isVideoBlob)) {
+                    let poster = (item.img instanceof Blob && !isVideoBlob(item.img)) ? item.img : ((existing && existing.img instanceof Blob && !isVideoBlob(existing.img)) ? existing.img : null);
+                    if (!poster) poster = await makeVideoPoster(processedItem.gallery.find(isVideoBlob));
+                    processedItem.img = poster;
+                } else processedItem.img = null;
 
                 if (existing) {
                     processedItem.urls = mergeStringArrays(existing.urls, item.urls);
