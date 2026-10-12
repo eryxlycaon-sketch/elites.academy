@@ -218,6 +218,17 @@
         }
         body.global-blur .img-box:hover img { filter: blur(15px) brightness(0.7); }
 
+        /* Hover-to-preview video (PC). Follows the same privacy blur as the photo it sits
+           on — otherwise a playing preview would be the one sharp thing on a blurred grid. */
+        .hover-preview-video {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; border-radius: inherit;
+            opacity: 0; transition: opacity 0.25s ease;
+            pointer-events: none; z-index: 5;
+        }
+        body.global-blur .hover-preview-video { filter: blur(25px) brightness(0.5) contrast(1.2); transform: scale(1.15) translateZ(0); }
+        body.global-blur .img-box:hover .hover-preview-video { filter: blur(15px) brightness(0.7); }
+
         .page { display: none; opacity: 0; transform: translateY(15px) scale(0.98); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
         .page.active { display: block; opacity: 1; transform: translateY(0) scale(1); }
 
@@ -1618,6 +1629,69 @@
             render(true);
         }
 
+        // ===== Hover-to-preview videos (PC only) =====
+        // Hovering a card that has a video plays a muted loop over its cover. One preview at
+        // a time, created on hover and torn down on leave, so nothing is held in memory per
+        // card. Never runs on low-power devices, touch screens, with "reduce motion" on, or
+        // while the app is locked / in boring mode.
+        function hoverPreviewAllowed() {
+            try {
+                return isCinematicEnabled()
+                    && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+                    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                    && activeSecurityMode !== 'fake' && activeSecurityMode !== 'locked';
+            } catch (e) { return false; }
+        }
+
+        function stopHoverPreview() {
+            const cur = window._hoverPreview;
+            if (!cur) return;
+            clearTimeout(cur.timer);
+            if (cur.video) { try { cur.video.pause(); } catch (e) {} cur.video.removeAttribute('src'); try { cur.video.load(); } catch (e) {} cur.video.remove(); }
+            if (cur.url) URL.revokeObjectURL(cur.url);
+            window._hoverPreview = null;
+        }
+
+        function startHoverPreview(card) {
+            const cur = window._hoverPreview;
+            if (!cur || cur.card !== card) return;
+            const item = vaultData.find(x => x.id == card.dataset.id);
+            const vid = item && item.gallery && item.gallery.find(isVideoBlob);
+            const box = card.querySelector('.img-box');
+            if (!vid || !box) { window._hoverPreview = null; return; }
+            const url = URL.createObjectURL(vid);
+            const v = document.createElement('video');
+            v.className = 'hover-preview-video';
+            v.muted = true; v.setAttribute('muted', ''); v.loop = true; v.playsInline = true; v.preload = 'auto';
+            v.addEventListener('playing', () => { v.style.opacity = '1'; }, { once: true }); // fade in only once frames are actually flowing
+            v.src = url;
+            box.appendChild(v);
+            cur.video = v; cur.url = url;
+            const pr = v.play();
+            if (pr && pr.catch) pr.catch(() => { if (window._hoverPreview && window._hoverPreview.video === v) stopHoverPreview(); });
+        }
+
+        function attachHoverPreview(gridEl) {
+            if (!gridEl) return;
+            gridEl.addEventListener('mouseover', (e) => {
+                if (!hoverPreviewAllowed()) return;
+                const box = e.target.closest ? e.target.closest('.img-box') : null; if (!box) return;
+                const card = box.closest('[data-id]'); if (!card) return;
+                const cur = window._hoverPreview;
+                if (cur && cur.card === card) return; // still inside the same cover
+                stopHoverPreview();
+                const item = vaultData.find(x => x.id == card.dataset.id);
+                if (!item || !item.gallery || !item.gallery.some(isVideoBlob)) return;
+                window._hoverPreview = { card, video: null, url: null, timer: setTimeout(() => startHoverPreview(card), 250) }; // short delay so sweeping the mouse across the grid doesn't fire previews
+            });
+            gridEl.addEventListener('mouseout', (e) => {
+                const cur = window._hoverPreview; if (!cur) return;
+                const box = cur.card.querySelector('.img-box');
+                if (e.relatedTarget && box && box.contains(e.relatedTarget)) return; // moved between children of the cover
+                stopHoverPreview();
+            });
+        }
+
         function getTourneyImage(item) {
             let u = blobUrlMap.get(item.id);
             if(!u) {
@@ -2504,6 +2578,9 @@
             // some (days-since-backup, curfew streak) are time-based, not data-based.
             setInterval(() => { if (typeof vaultData !== 'undefined' && db) renderNewsTicker(); }, 5 * 60 * 1000);
 
+            attachHoverPreview(document.getElementById('vault-grid'));
+            document.addEventListener('visibilitychange', () => { if (document.hidden) stopHoverPreview(); });
+
             // PC keyboard shortcuts — restored from the Bumblebee build; the button
             // tooltips (Ctrl+N/S/B, Alt+2/3) were already sitting in the HTML with
             // nothing behind them, meaning this whole handler had gone missing.
@@ -3282,6 +3359,7 @@
 
         function render(animateEntrance = false) { 
             animateCurrentRenderPass = animateEntrance && isCinematicEnabled();
+            stopHoverPreview(); // the grid is about to be rebuilt; don't leave a video (or its blob URL) behind
             const grid = document.getElementById('vault-grid'); 
             const q = (document.getElementById('search-input-desk').value || document.getElementById('search-input-mob').value).toLowerCase().trim(); 
             const sortVal = document.getElementById('sort-engine-select').value; 
@@ -3318,14 +3396,25 @@
             mc.addEventListener('touchend', e => { if (!isPulling) return; isPulling = false; if (pl.classList.contains('visible')) { refreshData(() => { setTimeout(() => pl.classList.remove('visible'), 600); showToast("Desires re-indexed!"); }); } });
         }
         
+        // A video fills the whole viewer, so ignoring every touch on it (my first guard)
+        // meant you could never swipe away from one. Only the bottom strip, where the native
+        // play/seek controls live, is off-limits to swipes — so scrubbing doesn't flip the picture.
+        function pointerInVideoControls(e) {
+            const vid = e.target && e.target.closest ? e.target.closest('video') : null;
+            if (!vid) return false;
+            const pt = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+            return pt.clientY > vid.getBoundingClientRect().bottom - 84;
+        }
+
         function attachViewerSwipes() {
             const el = document.getElementById('viewer-img-container');
             const img = document.getElementById('viewer-main-img');
             if(!el || !img) return;
-            let touchStartX = 0; let initialPinchDistance = null;
+            let touchStartX = 0; let initialPinchDistance = null; let startedOnVideoControls = false;
             el.addEventListener('wheel', (e) => { e.preventDefault(); if(e.deltaY < 0) { zoomViewerImage(0.15); } else { zoomViewerImage(-0.15); } }, {passive: false});
             const startDrag = (e) => {
-                if (e.target.closest('button') || e.target.closest('video') || e.target.closest('#viewer-info-overlay')) return;
+                startedOnVideoControls = pointerInVideoControls(e); // decided where the gesture STARTS (a touch's target never changes)
+                if (e.target.closest('button') || startedOnVideoControls || e.target.closest('#viewer-info-overlay')) return;
                 vHasDragged = false;
                 if (e.type === 'touchstart' && e.touches.length === 2) { initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); return; }
                 if (viewerZoomLevel > 1) {
@@ -3344,7 +3433,7 @@
             };
             windowEndDragViewer = (e) => {
                 if(e.type === 'touchend' && e.touches.length < 2) { initialPinchDistance = null; }
-                if (isViewerDragging) { isViewerDragging = false; img.style.cursor = viewerZoomLevel > 1 ? 'grab' : 'default'; } else if (viewerZoomLevel === 1 && !e.target.closest('button') && !e.target.closest('video') && !e.target.closest('#viewer-info-overlay')) {
+                if (isViewerDragging) { isViewerDragging = false; img.style.cursor = viewerZoomLevel > 1 ? 'grab' : 'default'; } else if (viewerZoomLevel === 1 && !e.target.closest('button') && !startedOnVideoControls && !e.target.closest('#viewer-info-overlay')) {
                     let touchEndX = e.type.includes('mouse') ? e.pageX : (e.changedTouches ? e.changedTouches[0].screenX : 0);
                     if (touchStartX - touchEndX > 50) nextViewerImage(); else if (touchEndX - touchStartX > 50) prevViewerImage();
                 }
@@ -3357,6 +3446,7 @@
         function openView(id) {
             const item = vaultData.find(x => x.id == id);
             if(!item) return;
+            stopHoverPreview(); // don't keep a preview playing underneath the viewer
             bumpAchievementCounter('picsViewed');
             viewerCurrentItemId = item.id;
             viewerGallery = item.gallery && item.gallery.length > 0 ? item.gallery : (item.img ? [item.img] : []);
@@ -3397,6 +3487,9 @@
 
             modal.innerHTML = `
             <div id="viewer-img-container" class="w-full h-full relative flex items-center justify-center cursor-default">
+                ${viewerGallery.length > 1 && viewerGallery.some(isVideoBlob) ? `
+                <button onclick="event.stopPropagation(); prevViewerImage();" class="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 bg-black/40 hover:bg-white/20 text-white rounded-full flex items-center justify-center border border-white/20 z-[2050] active:scale-95 transition-all" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+                <button onclick="event.stopPropagation(); nextViewerImage();" class="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 bg-black/40 hover:bg-white/20 text-white rounded-full flex items-center justify-center border border-white/20 z-[2050] active:scale-95 transition-all" aria-label="Next"><i class="fas fa-chevron-right"></i></button>` : ''}
                 <div class="absolute top-4 sm:top-6 left-4 sm:left-6 flex flex-wrap gap-3 z-[2050]">
                     <button onclick="event.stopPropagation(); toggleClearViewViewer();" class="sm:hidden w-12 h-12 bg-black/40 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-xl border border-white/20 transition-all shadow-lg active:scale-90" title="Hide UI"><i id="toggle-ui-icon" class="fas fa-eye-slash text-sm"></i></button>
                 </div>
