@@ -42,6 +42,7 @@
                 var isSlowBench = benchMs > 60;
 
                 var isLowPower = isViaBrowser || saveData || mem <= 3 || cores <= 4 || !supportsBlur || isSlowBench;
+                try { if (localStorage.getItem('v_max_force_full') === '1') isLowPower = false; } catch (forceErr) {} // user opted in to full effects (Gates > options)
                 if (isLowPower) document.documentElement.classList.add('low-power');
                 if (isViaBrowser || !supportsBlur) document.documentElement.classList.add('no-blur');
                 if (isViaBrowser) document.documentElement.classList.add('via-browser');
@@ -68,6 +69,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;800&family=Cormorant+Garamond:wght@600;700&family=Uncial+Antiqua&family=Shippori+Mincho:wght@700;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -333,11 +335,117 @@
             box-shadow: inset 0 0 20px rgba(255, 215, 0, 0.05), 0 10px 30px rgba(255, 215, 0, 0.1) !important;
         }
 
-        #lock-overlay {
-            backdrop-filter: blur(40px) saturate(200%);
-            -webkit-backdrop-filter: blur(40px) saturate(200%);
-            background: rgba(5, 2, 4, 0.75);
-        }
+        /* ===== LOCK SCREEN: the sealed door at the end of a stone hall (pure CSS 3D, no Three.js: loads instantly, works offline / low-power) ===== */
+        #lock-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; overflow: hidden; background: #0a0409; transition: opacity 0.5s ease; }
+        #lock-overlay.hidden { display: none; }
+        /* your own picture shows through every dark area (Kink Control > Lock Screen Picture) */
+        #lock-overlay .lk-bgimg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 0.5s; }
+        #lock-overlay .lk-bgdim { position: absolute; inset: 0; background: rgba(8,3,9,var(--lk-dim, 0.45)); opacity: 0; transition: opacity 0.5s; }
+        #lock-overlay.has-bg .lk-bgimg, #lock-overlay.has-bg .lk-bgdim { opacity: 1; }
+        #lock-overlay .lk-scene { position: absolute; inset: 0; display: flex; justify-content: center; overflow: hidden; }
+        #lock-overlay .lk-hall { position: relative; width: min(100vw, 560px); height: 66%; transform-origin: 50% 50%; transition: transform 1.05s cubic-bezier(0.55, 0, 0.25, 1); }
+        #lock-overlay .lk-hall.open { transform: scale(2.3); }
+        #lock-overlay .lk-wall { position: absolute; left: 0; right: 0; top: 22%; height: 58%; background: radial-gradient(ellipse at 50% 55%, rgba(255,170,100,0.30), transparent 55%), linear-gradient(90deg, #1a0e14, #55433a 30%, #6d5a4b 50%, #55433a 70%, #1a0e14), #3a2a2a; box-shadow: inset 0 0 60px rgba(0,0,0,0.55); }
+        #lock-overlay .lk-wall::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 2px, transparent 2px 38px), repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 64px); opacity: 0.7; }
+        #lock-overlay.has-bg .lk-wall { opacity: 0.55; }
+        #lock-overlay .lk-floor { position: absolute; left: -40%; right: -40%; top: 79%; height: 70%; transform-origin: 50% 0; transform: perspective(380px) rotateX(63deg); background: linear-gradient(90deg, rgba(255,215,140,0.38) 0 2px, transparent 2px) 0 0 / 54px 54px, linear-gradient(0deg, rgba(255,215,140,0.38) 0 2px, transparent 2px) 0 0 / 54px 54px, conic-gradient(#2e2433 25%, #43354c 0 50%, #2e2433 0 75%, #43354c 0) 0 0 / 108px 108px; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 38%); mask-image: linear-gradient(to bottom, transparent, #000 38%); }
+        #lock-overlay.has-bg .lk-floor { opacity: 0.72; }
+        #lock-overlay .lk-floorglow { position: absolute; left: 20%; right: 20%; top: 76%; height: 14%; background: radial-gradient(ellipse at 50% 0, rgba(255,180,110,0.55), transparent 70%); filter: blur(6px); }
+        /* the door: carved stone arch + keystone, bronze-bound leaves, steps */
+        #lock-overlay .lk-doorwrap { position: absolute; left: 36%; width: 28%; top: 29%; height: 53%; }
+        #lock-overlay .lk-archframe { position: absolute; inset: -3.5% -7% 0 -7%; border-radius: 999px 999px 0 0 / 24% 24% 0 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.20) 0 1.5px, transparent 1.5px 17px), linear-gradient(90deg, #6e5c49, #cdbb9a 22%, #f0e3c6 50%, #cdbb9a 78%, #6e5c49); box-shadow: 0 8px 26px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(255,240,200,0.25); }
+        #lock-overlay .lk-key { position: absolute; left: 50%; top: -9.5%; width: 18%; height: 8.5%; margin-left: -9%; clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, #fbf1d6, #a8947a); z-index: 3; }
+        #lock-overlay .lk-key::after { content: ''; position: absolute; left: 50%; top: 52%; width: 32%; aspect-ratio: 1; transform: translate(-50%, -50%) rotate(45deg); background: radial-gradient(circle at 35% 30%, #ffc2d8, #d81b60 70%); border: 1px solid #ffe39a; box-shadow: 0 0 8px rgba(255,60,140,0.8); }
+        #lock-overlay .lk-door { position: absolute; inset: 0; border-radius: 999px 999px 0 0 / 22% 22% 0 0; overflow: hidden; perspective: 700px; background: #0c0508; box-shadow: 0 0 0 3px #7a5a22, 0 0 0 5px #1d140c, 0 0 40px rgba(255,170,90, calc(0.15 + var(--lk-charge, 0) * 0.5)); }
+        #lock-overlay .lk-corridor { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 60%, #fff3d0 0, #ffcf86 22%, #c46a52 52%, #3c1226 100%); opacity: 0.2; transition: opacity 0.9s ease; }
+        #lock-overlay .lk-corridor::after { content: ''; position: absolute; inset: 0; background: repeating-conic-gradient(from 0deg at 50% 62%, rgba(255,255,255,0.16) 0 4deg, transparent 4deg 12deg); }
+        #lock-overlay .lk-hall.open .lk-corridor { opacity: 1; }
+        #lock-overlay .lk-leaf { position: absolute; top: 0; bottom: 0; width: 50.4%; background: repeating-linear-gradient(90deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 6px), linear-gradient(90deg, #1c110b, #4a3222 42%, #5f4329 54%, #2a1a10); transition: transform 1s cubic-bezier(0.55, 0, 0.3, 1) 0.05s; backface-visibility: hidden; }
+        #lock-overlay .lk-leaf.l { left: 0; transform-origin: 0 50%; }
+        #lock-overlay .lk-leaf.r { right: 0; transform-origin: 100% 50%; }
+        #lock-overlay .lk-leaf::before { content: ''; position: absolute; inset: 5% 11% 4%; border: 2px solid #b8923f; border-radius: 3px; box-shadow: inset 0 0 14px rgba(0,0,0,0.75), 0 0 0 1px rgba(0,0,0,0.6); background: radial-gradient(circle at 40% 35%, #fff0b0 0 1px, #d9b45a 1.6px, transparent 2.6px) 0 0 / 15px 15px, linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.3)); }
+        #lock-overlay .lk-strap { position: absolute; width: 90%; height: 6.5%; background: radial-gradient(circle at 10% 50%, #fff3c0 0 1.4px, transparent 2px) 0 0 / 22% 100% repeat-x, linear-gradient(180deg, #ecc46a, #8a6424 55%, #c79a43); clip-path: polygon(0 0, 86% 0, 100% 50%, 86% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.7)); }
+        #lock-overlay .lk-leaf.l .lk-strap { left: 0; }
+        #lock-overlay .lk-leaf.r .lk-strap { right: 0; transform: scaleX(-1); }
+        #lock-overlay .lk-strap.a { top: 15%; } #lock-overlay .lk-strap.b { top: 79%; }
+        #lock-overlay .lk-ring { position: absolute; top: 55%; width: 26%; aspect-ratio: 1; border-radius: 50%; border: 2.5px solid #e2bb62; box-shadow: inset 0 0 0 1px #6b4a14, 0 2px 4px rgba(0,0,0,0.7); }
+        #lock-overlay .lk-ring::before { content: ''; position: absolute; left: 50%; top: -34%; width: 46%; aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff0b0, #b8923f 70%); box-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+        #lock-overlay .lk-leaf.l .lk-ring { right: 9%; } #lock-overlay .lk-leaf.r .lk-ring { left: 9%; }
+        #lock-overlay .lk-hall.open .lk-leaf.l { transform: rotateY(-82deg); }
+        #lock-overlay .lk-hall.open .lk-leaf.r { transform: rotateY(82deg); }
+        #lock-overlay .lk-seam { position: absolute; left: 50%; top: 4%; bottom: 0; width: 2px; margin-left: -1px; background: linear-gradient(to bottom, transparent, #ffd98a 12%, #ffb870 90%); box-shadow: 0 0 calc(6px + var(--lk-charge, 0) * 26px) rgba(255,190,110, calc(0.5 + var(--lk-charge, 0) * 0.5)); opacity: calc(0.55 + var(--lk-charge, 0) * 0.45); transition: opacity 0.4s, box-shadow 0.4s; }
+        #lock-overlay .lk-hall.open .lk-seam { opacity: 0; }
+        #lock-overlay .lk-medal { position: absolute; left: 50%; top: 33%; width: 38%; aspect-ratio: 1; margin: -19% 0 0 -19%; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid transparent; background: radial-gradient(circle at 35% 30%, #5a1a35, #1a0510 72%) padding-box, conic-gradient(#fff2c4, #b8923f, #fff2c4, #8a6424, #fff2c4) border-box; box-shadow: 0 0 0 2px rgba(0,0,0,0.55), 0 0 20px rgba(255,60,140,0.6), inset 0 0 12px rgba(0,0,0,0.7); transition: opacity 0.35s, transform 0.6s; }
+        #lock-overlay .lk-medal svg { width: 58%; height: 58%; filter: drop-shadow(0 0 4px rgba(255,80,150,0.8)); }
+        #lock-overlay .lk-hall.open .lk-medal { opacity: 0; transform: scale(1.6); }
+        #lock-overlay .lk-steps { position: absolute; left: 0; right: 0; bottom: -9.6%; height: 9.6%; }
+        #lock-overlay .lk-steps i { position: absolute; display: block; height: 33.4%; background: linear-gradient(180deg, #f0e3c6, #9c8870); box-shadow: 0 3px 8px rgba(0,0,0,0.55); border-radius: 2px; }
+        #lock-overlay .lk-steps i:nth-child(1) { bottom: 0; left: -17%; right: -17%; }
+        #lock-overlay .lk-steps i:nth-child(2) { bottom: 33%; left: -23%; right: -23%; filter: brightness(0.85); }
+        #lock-overlay .lk-steps i:nth-child(3) { bottom: 66%; left: -29%; right: -29%; filter: brightness(0.7); }
+        #lock-overlay.deny .lk-doorwrap { animation: lkShake 0.5s ease; }
+        #lock-overlay.deny .lk-seam { background: linear-gradient(to bottom, transparent, #ff4a5a 12%, #ff2d55 90%); box-shadow: 0 0 22px rgba(255,40,70,0.9); }
+        @keyframes lkShake { 0%, 100% { transform: translateX(0); } 18% { transform: translateX(-9px); } 36% { transform: translateX(8px); } 54% { transform: translateX(-6px); } 72% { transform: translateX(4px); } }
+        /* beams + fluted pillars (near pair frames the view, far pair stands beside the door) */
+        #lock-overlay .lk-beam { position: absolute; left: var(--bx); right: var(--bx); top: var(--by); height: var(--bh); background: repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0 1px, transparent 1px 40px), linear-gradient(180deg, #e8d9bb, #b9a483 55%, #7d6a55); box-shadow: 0 10px 24px rgba(0,0,0,0.55), inset 0 -3px 0 rgba(0,0,0,0.25); border-top: 2px solid #f6ead0; }
+        #lock-overlay .lk-beam::after { content: ''; position: absolute; left: 6%; right: 6%; top: 46%; height: 8%; background: linear-gradient(90deg, transparent, #c9a24a 15%, #f3d27a 50%, #c9a24a 85%, transparent); opacity: 0.8; border-radius: 2px; }
+        #lock-overlay .lk-beam.near { --bx: 0%; --by: 0; --bh: 10.5%; }
+        #lock-overlay .lk-beam.mid { --bx: 17%; --by: 15.5%; --bh: 6%; opacity: 0.97; }
+        #lock-overlay .lk-pillar { position: absolute; top: var(--pt); bottom: var(--pb); width: var(--pw); }
+        #lock-overlay .lk-pillar.l { left: var(--px); } #lock-overlay .lk-pillar.r { right: var(--px); }
+        #lock-overlay .lk-pillar .shaft { position: absolute; left: 11%; right: 11%; top: 4%; bottom: 4%; background: repeating-linear-gradient(90deg, rgba(0,0,0,0.30) 0 2px, transparent 2px 9px), linear-gradient(90deg, #4d3f35 0%, #cdbb9a 30%, #f3e6c8 48%, #b9a483 72%, #3e3129 100%); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        #lock-overlay .lk-pillar::before, #lock-overlay .lk-pillar::after { content: ''; position: absolute; left: 0; right: 0; background: linear-gradient(180deg, #efe1c3, #a8947a); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #lock-overlay .lk-pillar::before { top: 0; height: 5%; border-radius: 4px 4px 14px 14px / 4px 4px 8px 8px; }
+        #lock-overlay .lk-pillar::after { bottom: 0; height: 4%; border-radius: 3px; }
+        #lock-overlay .lk-pillar.near { --pw: 17%; --px: 0%; --pt: 6%; --pb: -2%; }
+        #lock-overlay .lk-pillar.mid { --pw: 11%; --px: 18%; --pt: 17%; --pb: 19%; filter: brightness(0.92); }
+        /* the torch light falls on the inner face of each far pillar */
+        #lock-overlay .lk-pillar.mid.l .shaft { box-shadow: inset -1.8em 0 1.8em -1.2em rgba(255,150,70,0.3), 0 0 30px rgba(0,0,0,0.5); }
+        #lock-overlay .lk-pillar.mid.r .shaft { box-shadow: inset 1.8em 0 1.8em -1.2em rgba(255,150,70,0.3), 0 0 30px rgba(0,0,0,0.5); }
+        /* real torch: iron arm bolted to the pillar, wooden shaft, bronze cup, layered flame, embers */
+        #lock-overlay .lk-torch { position: absolute; top: 26%; width: 6em; height: 16em; font-size: clamp(5px, 1.6vw, 9.5px); z-index: 3; pointer-events: none; }
+        #lock-overlay .lk-pillar.l .lk-torch { left: 86%; }
+        #lock-overlay .lk-pillar.r .lk-torch { right: 86%; transform: scaleX(-1); }
+        #lock-overlay .lk-torch::before { content: ''; position: absolute; left: 2.55em; top: 3em; width: 26em; height: 26em; margin: -13em 0 0 -13em; background: radial-gradient(circle, rgba(255,170,90,0.42), rgba(255,120,40,0.12) 40%, transparent 68%); mix-blend-mode: screen; animation: lkGlow 1.3s infinite alternate ease-in-out; }
+        #lock-overlay .lk-torch i { position: absolute; display: block; }
+        #lock-overlay .tk-arm { left: 0; top: 8.6em; width: 3em; height: 0.75em; border-radius: 0.4em; background: linear-gradient(180deg, #8a6a3a, #3b2a14); box-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+        #lock-overlay .tk-arm::before { content: ''; position: absolute; left: -0.5em; top: -0.3em; width: 1.3em; height: 1.3em; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #e9c978, #6b4a14 75%); box-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+        #lock-overlay .tk-stick { left: 2em; top: 4.6em; width: 1.2em; height: 9.4em; clip-path: polygon(0 0, 100% 0, 76% 100%, 24% 100%); background: linear-gradient(90deg, #2a1a0e, #7a5530 45%, #3b2512); }
+        #lock-overlay .tk-stick::before { content: ''; position: absolute; left: 0; right: 0; top: 52%; height: 0.8em; background: linear-gradient(180deg, #f0cf7a, #8a6424); }
+        #lock-overlay .tk-cup { left: 0.75em; top: 2.7em; width: 3.6em; height: 2.2em; clip-path: polygon(0 0, 100% 0, 82% 100%, 18% 100%); background: linear-gradient(90deg, #6b4a14, #f3d27a 35%, #fff0b0 50%, #b8923f 75%, #5a3c10); }
+        #lock-overlay .tk-cup::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 0.5em; background: linear-gradient(180deg, #ffd27a, #ff8a30); }
+        #lock-overlay .tk-fl { left: 1.25em; width: 2.6em; height: 2.6em; border-radius: 0 50% 50% 50%; transform: rotate(-45deg); transform-origin: 50% 70%; }
+        #lock-overlay .tk-fl.a { top: -1.3em; background: radial-gradient(circle at 60% 60%, #ff9a2e, #ff4a14 70%, rgba(255,60,20,0.2)); animation: lkFlameA 0.21s infinite alternate ease-in-out; filter: blur(0.3px); box-shadow: 0 0 1.2em 0.2em rgba(255,110,30,0.7); }
+        #lock-overlay .tk-fl.b { left: 1.65em; top: -0.5em; width: 1.8em; height: 1.8em; background: radial-gradient(circle at 60% 60%, #ffe27a, #ffb133 75%); animation: lkFlameB 0.17s infinite alternate ease-in-out; }
+        #lock-overlay .tk-fl.c { left: 2.05em; top: 0.4em; width: 1em; height: 1em; background: radial-gradient(circle at 60% 60%, #fffbe0, #ffe9a0); animation: lkFlameC 0.13s infinite alternate ease-in-out; }
+        #lock-overlay .tk-em { left: 2.4em; top: 0.8em; width: 0.28em; height: 0.28em; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 0.5em #ff9a3c; opacity: 0; animation: lkRise 1.7s infinite ease-out; }
+        #lock-overlay .tk-em.e2 { animation-delay: 0.55s; left: 2.9em; } #lock-overlay .tk-em.e3 { animation-delay: 1.1s; left: 2em; }
+        @keyframes lkFlameA { from { transform: rotate(-48deg) scale(0.95, 1); } to { transform: rotate(-41deg) scale(1.05, 1.1); } }
+        @keyframes lkFlameB { from { transform: rotate(-42deg) scale(1.02, 0.95); } to { transform: rotate(-49deg) scale(0.95, 1.08); } }
+        @keyframes lkFlameC { from { transform: rotate(-46deg) scale(0.9, 1); } to { transform: rotate(-43deg) scale(1.1, 1.08); } }
+        @keyframes lkRise { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(0.6em, -6em); opacity: 0; } }
+        @keyframes lkGlow { from { opacity: 0.8; } to { opacity: 1; } }
+        #lock-overlay .lk-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 38%, transparent 38%, rgba(6,2,6,0.7) 100%); }
+        #lock-overlay.has-bg .lk-vignette { background: radial-gradient(ellipse at 50% 38%, transparent 55%, rgba(6,2,6,0.45) 100%); }
+        /* bottom panel */
+        #lock-overlay .lk-panel { position: relative; z-index: 5; margin-top: auto; padding: 56px 24px max(22px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(to bottom, rgba(10,4,9,0) 0, rgba(10,4,9,0.86) 34px, rgba(10,4,9,0.96) 100%); transition: opacity 0.4s, transform 0.6s; }
+        #lock-overlay.has-bg .lk-panel { background: linear-gradient(to bottom, rgba(10,4,9,0) 0, rgba(10,4,9,0.6) 34px, rgba(10,4,9,0.78) 100%); }
+        #lock-overlay.opening .lk-panel { opacity: 0; transform: translateY(40px); }
+        #lock-overlay .lk-title { font-family: 'Cinzel', 'Trajan Pro', Georgia, serif; font-weight: 800; text-transform: uppercase; letter-spacing: 0.22em; padding-left: 0.22em; font-size: clamp(0.95rem, 4.4vw, 1.25rem); line-height: 1.35; margin: 0 0 8px; background: linear-gradient(180deg, #fff0c4, #d9b45a 55%, #a3762a); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+        #lock-overlay .lk-sub { margin: 0 0 16px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,205,215,0.85); max-width: 20rem; line-height: 1.6; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+        #lock-overlay .lk-runes { display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; min-height: 12px; }
+        #lock-overlay .lk-runes i { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid rgba(217,180,90,0.5); background: rgba(0,0,0,0.4); transition: all 0.2s; }
+        #lock-overlay .lk-runes i.on { background: radial-gradient(circle, #fff3c8, #d9b45a 70%); border-color: #ffe39a; box-shadow: 0 0 10px rgba(255,200,110,0.9); transform: scale(1.15); }
+        #lock-overlay .lk-input { width: 100%; max-width: 22rem; box-sizing: border-box; padding: 14px 16px; text-align: center; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.6rem; letter-spacing: 0.5em; color: #fff3d6; background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(30,16,22,0.5)); border: 1px solid rgba(217,180,90,0.45); border-radius: 14px; outline: none; box-shadow: inset 0 3px 10px rgba(0,0,0,0.7); margin-bottom: 14px; }
+        #lock-overlay .lk-input::placeholder { color: rgba(217,180,90,0.35); }
+        #lock-overlay .lk-input:focus { border-color: #f0cf7a; box-shadow: inset 0 3px 10px rgba(0,0,0,0.7), 0 0 18px rgba(240,207,122,0.28); }
+        #lock-overlay .lk-btn { width: 100%; max-width: 22rem; padding: 14px; border-radius: 14px; border: 1px solid rgba(255,150,180,0.55); font-weight: 900; font-size: 0.85rem; letter-spacing: 0.2em; text-transform: uppercase; color: #fff; background: linear-gradient(90deg, #e11d48, #db2777); box-shadow: 0 6px 22px rgba(255,20,120,0.4), inset 0 1px 0 rgba(255,255,255,0.25); cursor: pointer; transition: transform 0.15s; }
+        #lock-overlay .lk-btn:active { transform: scale(0.97); }
+        #lock-overlay .lk-forgot { margin-top: 14px; background: none; border: 0; cursor: pointer; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: underline; color: rgba(253,164,175,0.9); text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+        .low-power #lock-overlay .lk-torch::before, .low-power #lock-overlay .tk-fl, .low-power #lock-overlay .tk-em { animation: none; }
+        .low-power #lock-overlay .lk-hall, .low-power #lock-overlay .lk-leaf { transition-duration: 0.01s; }
+        @media (pointer: coarse) { #lock-overlay .lk-torch::before { animation: none; mix-blend-mode: normal; opacity: 0.75; } #lock-overlay .tk-em { display: none; } }
+        @media (prefers-reduced-motion: reduce) { #lock-overlay .lk-torch::before, #lock-overlay .tk-fl, #lock-overlay .tk-em { animation: none; } }
 
         /* ===== CALM FOCUS / SLEEP WINDOW OVERLAY ===== */
         #curfew-overlay {
@@ -442,6 +550,202 @@
             animation: shine 3s linear infinite;
         }
         @keyframes shine { to { background-position: 200% center; } }
+        /* ===== EMPIRE REBUILD · STEP 1: per-realm theme variables ===== */
+        body { --emp-accent: #ff1493; --emp-accent2: #7b2cbf; --emp-glow: rgba(255,20,147,0.55); --emp-font: 'Outfit', sans-serif; --emp-rgb: 255,20,147; --emp-rgb2: 123,44,191; --fr: 255,20,147; }
+        #cinematic-title { font-family: var(--emp-font); }
+        #cinematic-title:not(.legendary-text) { text-shadow: 0 0 34px var(--emp-glow), 0 5px 15px rgba(0,0,0,0.8); }
+        #cinematic-icon:not(.text-yellow-400) { color: var(--emp-accent); }
+        #sec-theme-preview { transition: background 0.3s ease; }
+        /* ===== EMPIRE REBUILD · STEP 2: portal overlay ===== */
+        /* ===== EMPIRE REBUILD · STEP 4: Lore Cards (vault cards wear their realm's colours, font and frame) ===== */
+        /* (Lore card skin removed: cards use the original design again) */
+        /* Vault cards: no brighten / zoom on the picture while hovering (blur-privacy mode still wins) */
+        body:not(.global-blur) #vault-grid .img-box:hover img { filter: none; transform: none; }
+
+        /* ===== EMPIRE REBUILD · STEP 5: Gate Carousel ===== */
+        #empire-gates { position: fixed; inset: 0; z-index: 1085; display: none; opacity: 0; background: #030105; overflow: hidden; transition: opacity 0.3s ease; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+        #empire-gates.open { opacity: 1; }
+        #empire-gates .eg-bg { position: absolute; inset: -6%; opacity: 0; transition: opacity 0.7s ease; background-size: cover; background-position: center; filter: blur(26px) brightness(0.6) saturate(1.2); }
+        #empire-gates .eg-bg.show { opacity: 1; }
+        .low-power #empire-gates .eg-bg { filter: none; inset: 0; }
+        #empire-gates .eg-wash { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(0,0,0,0.55) 100%), linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 28%, transparent 62%, rgba(0,0,0,0.75)); }
+        #empire-gates .eg-track { position: absolute; left: 0; right: 0; top: 50%; height: min(70vh, 560px); transform: translateY(-50%); perspective: 1400px; transition: transform 0.3s cubic-bezier(.16,1,.3,1); }
+        #empire-gates .eg-card { position: absolute; left: 50%; top: 0; height: 100%; width: min(62vw, 340px); border-radius: 26px; overflow: hidden; cursor: pointer; border: 1px solid rgba(var(--fr), 0.45); box-shadow: 0 30px 70px rgba(0,0,0,0.6); background: linear-gradient(160deg, rgba(var(--emp-rgb), 0.45), rgba(var(--emp-rgb2), 0.30) 60%, #08040a); transition: transform 0.55s cubic-bezier(.16,1,.3,1), opacity 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease; will-change: transform; }
+        .low-power #empire-gates .eg-card { transition: transform 0.22s ease, opacity 0.22s ease; will-change: auto; box-shadow: none; }
+        #empire-gates .eg-card.focus { border-color: rgba(var(--fr), 0.9); box-shadow: 0 30px 80px rgba(0,0,0,0.65), 0 0 60px rgba(var(--fr), 0.35); }
+        .low-power #empire-gates .eg-card.focus { box-shadow: none; }
+        #empire-gates .eg-card::before, #empire-gates .eg-card::after { content: ''; position: absolute; width: 26px; height: 26px; pointer-events: none; z-index: 5; opacity: 0.85; }
+        #empire-gates .eg-card::before { top: 12px; left: 12px; border-top: 2px solid rgb(var(--fr)); border-left: 2px solid rgb(var(--fr)); border-top-left-radius: 10px; }
+        #empire-gates .eg-card::after { bottom: 12px; right: 12px; border-bottom: 2px solid rgb(var(--fr)); border-right: 2px solid rgb(var(--fr)); border-bottom-right-radius: 10px; }
+        #empire-gates .eg-img { position: absolute; inset: 0; background-size: cover; background-position: center; }
+        #empire-gates .eg-ico { position: absolute; left: 0; right: 0; top: 24%; text-align: center; font-size: 5.2rem; color: rgba(var(--emp-rgb), 0.55); filter: drop-shadow(0 0 24px rgba(var(--emp-rgb), 0.6)); }
+        #empire-gates .eg-crown { position: absolute; top: 16px; left: 0; right: 0; text-align: center; color: #ffd700; font-size: 1.1rem; filter: drop-shadow(0 0 8px rgba(255,215,0,0.7)); z-index: 6; }
+        #empire-gates .eg-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.5) 42%, transparent 72%); }
+        #empire-gates .eg-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px 22px 24px; text-align: center; z-index: 4; }
+        #empire-gates .eg-name { font-family: var(--emp-font); font-weight: 800; font-size: clamp(1.15rem, 3.4vmin, 1.7rem); letter-spacing: 0.12em; text-transform: uppercase; color: #fff; text-shadow: 0 0 24px rgba(var(--emp-rgb), 0.7); line-height: 1.15; }
+        #empire-gates .eg-desc { margin-top: 8px; font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 0.85rem; line-height: 1.5; color: rgba(255,255,255,0.82); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        #empire-gates .eg-meta { margin-top: 10px; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.68rem; letter-spacing: 0.18em; color: rgb(var(--emp-rgb)); text-transform: uppercase; }
+        #empire-gates .eg-enter { display: none; margin: 14px auto 0; width: max-content; padding: 8px 24px; border-radius: 999px; border: 1px solid rgba(var(--fr), 0.85); color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.26em; background: rgba(var(--emp-rgb), 0.28); }
+        #empire-gates .eg-card.focus .eg-enter { display: block; }
+        #empire-gates .eg-card:not(.focus) .eg-desc, #empire-gates .eg-card:not(.focus) .eg-meta { display: none; }
+        #empire-gates .eg-card.far .eg-info { opacity: 0; }
+        #empire-gates .eg-edit { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); color: #fff; font-size: 12px; z-index: 9; cursor: pointer; display: none; align-items: center; justify-content: center; }
+        #empire-gates .eg-card.focus .eg-edit { display: flex; }
+        #empire-gates .eg-dim { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 7; transition: opacity 0.4s ease; }
+        #empire-gates .eg-ui { position: absolute; z-index: 20; font-family: 'Outfit', sans-serif; color: rgba(255,255,255,0.8); }
+        #empire-gates .eg-close { top: 18px; right: 18px; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.45); color: #fff; font-size: 16px; }
+        #empire-gates .eg-count { bottom: 5vh; left: 0; right: 0; text-align: center; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.22em; pointer-events: none; }
+        #empire-gates .eg-dots { margin-top: 10px; display: flex; gap: 7px; justify-content: center; }
+        #empire-gates .eg-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: all 0.3s; }
+        #empire-gates .eg-dots i.on { background: #fff; width: 18px; border-radius: 4px; }
+
+        /* ===== EMPIRE REBUILD · STEP 7: real-world sync (time of day + weather) ===== */
+        #empire-ambient { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
+        #empire-ambient.on { display: block; }
+        #empire-ambient .ea-tint { position: absolute; inset: 0; transition: background 2s ease; }
+        #empire-ambient .ea-fog { position: absolute; inset: 0; opacity: 0; transition: opacity 2s ease; background: radial-gradient(ellipse at 20% 95%, rgba(225,230,240,0.30), transparent 60%), radial-gradient(ellipse at 85% 75%, rgba(225,230,240,0.22), transparent 55%); }
+        #empire-ambient canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+        #empire-ambient .ea-flash { position: absolute; inset: 0; background: #dfe8ff; opacity: 0; }
+        #empire-gates .eg-gear { top: 18px; left: 18px; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.45); color: #fff; font-size: 18px; }
+        #empire-gates .eg-panel { top: 68px; left: 18px; display: none; flex-direction: column; gap: 12px; width: min(300px, calc(100vw - 36px)); padding: 14px 16px; border-radius: 18px; background: rgba(8,5,10,0.88); border: 1px solid rgba(255,255,255,0.18); font-size: 0.78rem; letter-spacing: 0.04em; color: #fff; }
+        #empire-gates .eg-panel.open { display: flex; }
+        #empire-gates .eg-panel label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; line-height: 1.35; }
+        #empire-gates .eg-panel input { margin-top: 2px; accent-color: #fff; flex-shrink: 0; }
+        #empire-gates .eg-panel .eg-city { display: flex; gap: 8px; margin-top: 2px; }
+        #empire-gates .eg-panel .eg-city-in { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.22); color: #fff; font-size: 0.78rem; outline: none; }
+        #empire-gates .eg-panel .eg-city-in:focus { border-color: rgba(255,255,255,0.6); }
+        #empire-gates .eg-panel .eg-city-go { padding: 0 14px; border-radius: 10px; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; }
+        #empire-gates .eg-panel .eg-sync-status { font-size: 0.7rem; opacity: 0.8; line-height: 1.4; margin-top: 6px; }
+        #empire-gates .eg-panel small { display: block; opacity: 0.6; font-size: 0.68rem; margin-top: 2px; letter-spacing: 0.02em; }
+        /* ===== EMPIRE REBUILD · link pill + popover (cards stay clean, links open on demand) ===== */
+        .link-pill { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 4px 10px; border-radius: 999px; font-family: 'Outfit', sans-serif; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; background: rgba(var(--emp-rgb), 0.18); border: 1px solid rgba(var(--emp-rgb), 0.42); cursor: pointer; transition: background 0.15s, transform 0.1s; }
+        .link-pill:hover { background: rgba(var(--emp-rgb), 0.34); }
+        .link-pill:active { transform: scale(0.96); }
+        .link-pill .fa-link { color: rgb(var(--emp-rgb)); font-size: 9px; }
+        .link-pill .fa-chevron-down { font-size: 7px; opacity: 0.7; transition: transform 0.2s; }
+        .link-pill.open .fa-chevron-down { transform: rotate(180deg); }
+        #link-pop-bg { position: fixed; inset: 0; z-index: 999; display: none; }
+        #link-pop { position: fixed; z-index: 1000; display: none; width: min(340px, calc(100vw - 24px)); max-height: min(60vh, 380px); overflow-y: auto; border-radius: 18px; padding: 10px; background: rgba(10,6,12,0.94); border: 1px solid rgba(var(--fr), 0.45); box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 40px rgba(var(--fr), 0.18); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); opacity: 0; transform: translateY(6px) scale(0.98); transition: opacity 0.16s ease, transform 0.16s ease; overscroll-behavior: contain; }
+        #link-pop.open { opacity: 1; transform: none; }
+        .low-power #link-pop, .no-blur #link-pop { background: rgba(10,6,12,0.985); -webkit-backdrop-filter: none; backdrop-filter: none; }
+        #link-pop .lp-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 8px; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+        #link-pop .lp-head span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; }
+        #link-pop a.lp-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; color: #fff; text-decoration: none; transition: background 0.12s; }
+        #link-pop a.lp-row:hover, #link-pop a.lp-row:focus-visible { background: rgba(var(--emp-rgb), 0.18); outline: none; }
+        #link-pop .lp-ico { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(var(--emp-rgb), 0.22); color: rgb(var(--emp-rgb)); font-size: 12px; flex-shrink: 0; }
+        #link-pop .lp-txt { min-width: 0; flex: 1; font-family: 'Outfit', sans-serif; }
+        #link-pop .lp-label { font-weight: 700; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #link-pop .lp-dom { font-size: 0.68rem; opacity: 0.55; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #link-pop .lp-go { opacity: 0.45; font-size: 10px; }
+        @media (max-width: 640px) {
+            #link-pop-bg.open { background: rgba(0,0,0,0.5); }
+            #link-pop { left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; width: auto; max-height: 62vh; border-radius: 24px 24px 0 0; padding: 12px 12px calc(16px + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform 0.25s cubic-bezier(.16,1,.3,1), opacity 0.2s; }
+            #link-pop.open { transform: none; }
+            #link-pop a.lp-row { padding: 14px 10px; }
+        }
+        /* ===== EMPIRE REBUILD · STEP 8: Founding Pact + Codex ===== */
+        #empire-pact { position: fixed; inset: 0; z-index: 1120; display: none; opacity: 0; background: rgba(2,1,3,0.84); overflow-y: auto; transition: opacity 0.25s ease; }
+        #empire-pact.open { opacity: 1; }
+        .low-power #empire-pact { background: rgba(2,1,3,0.96); }
+        #empire-pact .pc-sheet { position: relative; width: min(560px, calc(100vw - 28px)); margin: 6vh auto; padding: 34px 30px 26px; border-radius: 8px; text-align: center; color: #f3e7cf; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 2px, transparent 2px 4px), linear-gradient(160deg, #2b1f14, #150b0b 70%); border: 1px solid rgba(var(--fr), 0.55); box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 60px rgba(var(--fr), 0.2), inset 0 0 60px rgba(0,0,0,0.5); transform: translateY(14px) scale(0.98); transition: transform 0.35s cubic-bezier(.16,1,.3,1); }
+        #empire-pact.open .pc-sheet { transform: none; }
+        #empire-pact .pc-sheet::before, #empire-pact .pc-sheet::after { content: ''; position: absolute; width: 26px; height: 26px; border: 2px solid rgb(var(--fr)); opacity: 0.8; }
+        #empire-pact .pc-sheet::before { top: 10px; left: 10px; border-right: 0; border-bottom: 0; }
+        #empire-pact .pc-sheet::after { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
+        #empire-pact .pc-crest { font-size: 1.8rem; color: rgb(var(--fr)); margin-bottom: 8px; filter: drop-shadow(0 0 12px rgba(var(--fr), 0.6)); }
+        #empire-pact .pc-title { font-family: 'Cinzel', 'Times New Roman', serif; letter-spacing: 0.34em; font-size: 0.7rem; color: rgba(243,231,207,0.6); }
+        #empire-pact .pc-name { font-family: var(--emp-font); font-size: clamp(1.6rem, 6vw, 2.4rem); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; text-shadow: 0 0 30px rgba(var(--emp-rgb), 0.6); margin: 8px 0 16px; line-height: 1.1; word-break: break-word; }
+        #empire-pact .pc-text { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.15rem; line-height: 1.65; color: #eadfc8; }
+        #empire-pact .pc-desc { margin-top: 8px; font-style: italic; color: rgba(234,223,200,0.75); }
+        #empire-pact .pc-legend { margin-top: 10px; font-style: italic; color: #ffd700; }
+        #empire-pact .pc-sign { margin: 26px auto 4px; position: relative; width: 134px; height: 134px; display: flex; align-items: center; justify-content: center; }
+        #empire-pact .pc-seal { position: relative; width: 104px; height: 104px; border-radius: 50%; cursor: pointer; color: #fff; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.14), transparent 45%), rgba(var(--emp-rgb2), 0.35); border: 2px dashed rgba(var(--fr), 0.65); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; touch-action: none; user-select: none; -webkit-user-select: none; font-size: 1.5rem; }
+        #empire-pact .pc-ring { position: absolute; inset: -2px; border-radius: 50%; pointer-events: none; background: conic-gradient(rgb(var(--fr)) calc(var(--p, 0) * 360deg), rgba(255,255,255,0.1) 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); }
+        #empire-pact .pc-hint { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.55rem; letter-spacing: 0.2em; }
+        #empire-pact .pc-wax { position: absolute; inset: 4px; display: none; align-items: center; justify-content: center; border-radius: 48% 52% 55% 45% / 50% 46% 54% 50%; background: radial-gradient(circle at 35% 28%, rgba(255,255,255,0.35), transparent 38%), radial-gradient(circle, rgb(var(--emp-rgb2)) 0%, rgba(0,0,0,0.6) 150%); box-shadow: 0 10px 24px rgba(0,0,0,0.6), inset 0 -6px 12px rgba(0,0,0,0.45), inset 0 4px 8px rgba(255,255,255,0.25); font-size: 2.1rem; color: rgba(0,0,0,0.38); text-shadow: 0 1px 0 rgba(255,255,255,0.3); }
+        #empire-pact .pc-done { height: 18px; margin-top: 6px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.05rem; letter-spacing: 0.12em; color: rgb(var(--fr)); opacity: 0; }
+        #empire-pact .pc-cancel { margin-top: 12px; background: none; border: 0; color: rgba(243,231,207,0.55); font-family: 'Outfit', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; }
+        #empire-gates .eg-book { top: 18px; left: 68px; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.45); color: #fff; font-size: 16px; }
+        #empire-gates .eg-book.new::after { content: ''; position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; background: #ffd700; box-shadow: 0 0 8px #ffd700; }
+        #empire-codex { position: fixed; inset: 0; z-index: 1086; display: none; opacity: 0; overflow-y: auto; background: radial-gradient(ellipse at 50% -10%, rgba(var(--emp-rgb), 0.22), transparent 55%), #050307; color: #fff; font-family: 'Outfit', sans-serif; transition: opacity 0.25s ease; }
+        #empire-codex.open { opacity: 1; }
+        #empire-codex .cx-wrap { width: min(1040px, calc(100vw - 28px)); margin: 0 auto; padding: 28px 0 60px; }
+        #empire-codex .cx-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
+        #empire-codex .cx-title { font-family: 'Cinzel', 'Times New Roman', serif; font-size: clamp(1.4rem, 5vw, 2.2rem); font-weight: 800; letter-spacing: 0.2em; }
+        #empire-codex .cx-close { width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.45); color: #fff; }
+        #empire-codex .cx-prog { font-size: 0.75rem; letter-spacing: 0.18em; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+        #empire-codex .cx-bar0 { height: 4px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; margin-bottom: 26px; }
+        #empire-codex .cx-bar0 i { display: block; height: 100%; background: linear-gradient(90deg, rgb(var(--emp-rgb)), rgb(var(--emp-rgb2))); }
+        #empire-codex .cx-sec { margin: 26px 0 12px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+        #empire-codex .cx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        #empire-codex .cx-card { border-radius: 20px; padding: 16px; border: 1px solid rgba(var(--fr), 0.4); background: linear-gradient(165deg, rgba(var(--emp-rgb), 0.12), rgba(var(--emp-rgb2), 0.06) 60%, rgba(10,6,12,0.9)); }
+        #empire-codex .cx-card.locked { opacity: 0.55; border-style: dashed; border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.03); filter: grayscale(0.7); }
+        #empire-codex .cx-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        #empire-codex .cx-head > i:first-child { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(var(--emp-rgb), 0.22); color: rgb(var(--emp-rgb)); }
+        #empire-codex .cx-head > div { min-width: 0; flex: 1; }
+        #empire-codex .cx-name { font-family: var(--emp-font); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #empire-codex .cx-sub { font-size: 0.68rem; letter-spacing: 0.14em; color: rgba(255,255,255,0.55); text-transform: uppercase; }
+        #empire-codex .cx-lock { opacity: 0.5; }
+        #empire-codex .cx-hint { font-size: 0.8rem; color: rgba(255,255,255,0.55); }
+        #empire-codex .cx-page { padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.82rem; }
+        #empire-codex .cx-page.off { opacity: 0.45; }
+        #empire-codex .cx-pt { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(var(--emp-rgb)); margin-bottom: 6px; }
+        #empire-codex .cx-need { font-size: 0.75rem; }
+        #empire-codex .cx-b { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 0.74rem; }
+        #empire-codex .cx-b span { width: 84px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #empire-codex .cx-b em { flex: 1; height: 6px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; font-style: normal; }
+        #empire-codex .cx-b em i { display: block; height: 100%; background: rgb(var(--emp-rgb)); }
+        #empire-codex .cx-chip { display: inline-block; margin: 2px 4px 2px 0; padding: 3px 9px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; background: rgba(var(--emp-rgb), 0.18); border: 1px solid rgba(var(--emp-rgb), 0.4); }
+        #empire-codex .cx-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        #empire-codex .cx-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }
+        #empire-codex .cx-row > i { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; background: #ffd700; color: #000; }
+        #empire-codex .cx-row.off { opacity: 0.55; border-style: dashed; }
+        #empire-codex .cx-row.off > i { background: rgba(255,255,255,0.15); color: #fff; }
+        #empire-codex .cx-row b { display: block; font-size: 0.85rem; letter-spacing: 0.06em; }
+        #empire-codex .cx-row div > div { font-size: 0.74rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+        #empire-codex .cx-new { margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-style: normal; font-size: 0.55rem; font-weight: 800; letter-spacing: 0.14em; background: #ffd700; color: #000; }
+        #empire-portal { position: fixed; inset: 0; z-index: 1090; display: none; opacity: 0; overflow: hidden; background: #000; cursor: pointer; }
+        #empire-portal .ep-bg { position: absolute; inset: 0; }
+        #empire-portal .ep-ring { position: absolute; left: 50%; top: 50%; width: 70vmin; height: 70vmin; margin: -35vmin 0 0 -35vmin; border-radius: 50%; border: 2px solid var(--emp-accent); box-shadow: 0 0 60px var(--emp-glow), inset 0 0 60px var(--emp-glow); opacity: 0; will-change: transform, opacity; }
+        #empire-portal .ep-ring2 { border-color: var(--emp-accent2); box-shadow: 0 0 40px var(--emp-accent2), inset 0 0 40px var(--emp-accent2); }
+        #empire-portal .ep-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; opacity: 0; }
+        #empire-portal .ep-icon { font-size: 2.2rem; color: var(--emp-accent); filter: drop-shadow(0 0 14px var(--emp-glow)); margin-bottom: 18px; }
+        #empire-portal .ep-title { font-family: var(--emp-font); font-size: clamp(2.2rem, 7vw, 5.5rem); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #fff; text-shadow: 0 0 40px var(--emp-glow); line-height: 1.1; }
+        #empire-portal .ep-line { height: 2px; width: min(260px, 50vw); margin: 22px 0; background: linear-gradient(90deg, transparent, var(--emp-accent), transparent); }
+        #empire-portal .ep-desc { max-width: 34rem; font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1rem; letter-spacing: 0.04em; line-height: 1.7; color: rgba(255,255,255,0.82); }
+        /* ===== EMPIRE REBUILD · STEP 3: Empire Wheel ===== */
+        #empire-wheel { position: fixed; inset: 0; z-index: 1080; display: none; opacity: 0; background: rgba(2,1,3,0.62); -webkit-backdrop-filter: blur(14px) saturate(120%); backdrop-filter: blur(14px) saturate(120%); touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity 0.18s ease; }
+        #empire-wheel.open { opacity: 1; }
+        .low-power #empire-wheel, .no-blur #empire-wheel { background: rgba(2,1,3,0.92); -webkit-backdrop-filter: none; backdrop-filter: none; }
+        #empire-wheel .epw-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, var(--emp-glow), transparent 55%); opacity: 0.5; pointer-events: none; }
+        #empire-wheel .epw-stage { position: absolute; left: 50%; top: 50%; width: min(88vmin, 680px); height: min(88vmin, 680px); transform: translate(-50%, -50%) scale(0.9); transition: transform 0.22s cubic-bezier(.16,1,.3,1); }
+        #empire-wheel.open .epw-stage { transform: translate(-50%, -50%) scale(1); }
+        #empire-wheel .epw-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+        .epw-seg { transition: transform 0.14s ease-out; cursor: pointer; }
+        .epw-seg .epw-shade { fill: rgba(4,2,6,0.5); transition: fill 0.14s; }
+        .epw-seg .epw-edge { fill: none; stroke: var(--c); stroke-opacity: 0.38; stroke-width: 1.6; transition: stroke-opacity 0.14s, stroke-width 0.14s; }
+        .epw-seg.on { transform: scale(1.06); }
+        .epw-seg.on .epw-shade { fill: rgba(4,2,6,0.1); }
+        .epw-seg.on .epw-edge { stroke-opacity: 1; stroke-width: 3; filter: drop-shadow(0 0 12px var(--c)); }
+        .epw-seg.cur .epw-edge { stroke-opacity: 0.8; stroke-dasharray: 6 5; }
+        .low-power .epw-seg, .low-power .epw-seg .epw-shade, .low-power .epw-seg .epw-edge { transition: none; }
+        .low-power .epw-seg.on { transform: none; }
+        .low-power .epw-seg.on .epw-edge { filter: none; }
+        #empire-wheel .epw-lab { position: absolute; width: 24%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.95); transition: transform 0.14s ease-out; }
+        #empire-wheel .epw-lab.on { transform: translate(-50%, -50%) scale(1.1); }
+        .low-power #empire-wheel .epw-lab { transition: none; }
+        #empire-wheel .epw-lab i { font-size: clamp(1.1rem, 3.2vmin, 1.8rem); display: block; margin-bottom: 5px; }
+        #empire-wheel .epw-lab span { display: block; font-size: clamp(0.62rem, 1.7vmin, 0.9rem); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #empire-wheel .epw-lab em { display: block; margin: 5px auto 0; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px #fff; }
+        #empire-wheel .epw-hub { position: absolute; left: 50%; top: 50%; width: 34%; height: 34%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(14,8,14,0.94), rgba(0,0,0,0.9)); border: 1px solid var(--emp-accent); box-shadow: 0 0 40px var(--emp-glow); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 6%; pointer-events: none; }
+        #empire-wheel .epw-hub-icon { font-size: clamp(1.1rem, 3.6vmin, 2rem); color: var(--emp-accent); margin-bottom: 8px; }
+        #empire-wheel .epw-hub-name { font-family: var(--emp-font); font-weight: 800; font-size: clamp(0.8rem, 2.6vmin, 1.45rem); letter-spacing: 0.1em; text-transform: uppercase; color: #fff; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        #empire-wheel .epw-hub-meta { margin-top: 6px; font-family: 'Outfit', sans-serif; font-size: clamp(0.55rem, 1.6vmin, 0.78rem); font-weight: 600; letter-spacing: 0.16em; color: var(--emp-accent); opacity: 0.9; }
+        #empire-wheel .epw-pager { margin-top: 8px; display: none; align-items: center; gap: 10px; pointer-events: auto; }
+        #empire-wheel .epw-pager button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); color: #fff; background: rgba(255,255,255,0.08); font-size: 12px; }
+        #empire-wheel .epw-pager span { font-size: 10px; letter-spacing: 0.12em; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif; }
+        #empire-wheel .epw-hint { position: absolute; left: 0; right: 0; bottom: 4vh; text-align: center; font-family: 'Outfit', sans-serif; font-size: 0.78rem; letter-spacing: 0.14em; color: rgba(255,255,255,0.6); pointer-events: none; }
+        #empire-portal .ep-count { margin-top: 18px; font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.8rem; letter-spacing: 0.18em; color: var(--emp-accent); opacity: 0.9; }
         /* ===== PERFORMANCE PATCH: lightweight grid cards (no backdrop-filter) ===== */
         .grid-card {
             background: rgba(255,255,255,0.055);
@@ -660,27 +964,41 @@
     
     <div class="ambient-bg"></div>
 
-    <div id="lock-overlay" class="fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-500">
-        <div class="glass-card p-8 rounded-3xl flex flex-col items-center w-[90%] max-w-sm">
-            <div class="w-16 h-16 rounded-full bg-rose-500/20 flex items-center justify-center mb-6 border border-rose-500/40 shadow-[0_0_20px_rgba(255,20,147,0.3)]">
-                <i class="fa-solid fa-shield-heart text-rose-400 fa-3x"></i>
+    <div id="lock-overlay">
+        <div class="lk-bgimg"></div><div class="lk-bgdim"></div>
+        <div class="lk-scene" aria-hidden="true">
+            <div class="lk-hall">
+                <div class="lk-wall"></div>
+                <div class="lk-floor"></div>
+                <div class="lk-floorglow"></div>
+                <div class="lk-doorwrap">
+                    <div class="lk-archframe"></div>
+                    <div class="lk-door">
+                        <div class="lk-corridor"></div>
+                        <div class="lk-leaf l"><i class="lk-strap a"></i><i class="lk-strap b"></i><i class="lk-ring"></i></div>
+                        <div class="lk-leaf r"><i class="lk-strap a"></i><i class="lk-strap b"></i><i class="lk-ring"></i></div>
+                        <div class="lk-seam"></div>
+                        <div class="lk-medal"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5 4.5 5.5v5.7c0 4.6 3.1 8.2 7.5 10.3 4.4-2.1 7.5-5.7 7.5-10.3V5.5L12 2.5z" fill="#e0527f" stroke="#ffd1df" stroke-width="1"/><path d="M12 15.6c-2.8-1.9-4-3.2-4-4.7 0-1.2.9-2 2-2 .8 0 1.6.5 2 1.2.4-.7 1.2-1.2 2-1.2 1.1 0 2 .8 2 2 0 1.5-1.2 2.8-4 4.7z" fill="#2a0715"/></svg></div>
+                    </div>
+                    <div class="lk-key"></div>
+                    <div class="lk-steps"><i></i><i></i><i></i></div>
+                </div>
+                <div class="lk-beam mid"></div>
+                <div class="lk-pillar mid l"><div class="shaft"></div><div class="lk-torch"><i class="tk-arm"></i><i class="tk-stick"></i><i class="tk-cup"></i><i class="tk-fl a"></i><i class="tk-fl b"></i><i class="tk-fl c"></i><i class="tk-em e1"></i><i class="tk-em e2"></i><i class="tk-em e3"></i></div></div>
+                <div class="lk-pillar mid r"><div class="shaft"></div><div class="lk-torch"><i class="tk-arm"></i><i class="tk-stick"></i><i class="tk-cup"></i><i class="tk-fl a"></i><i class="tk-fl b"></i><i class="tk-fl c"></i><i class="tk-em e1"></i><i class="tk-em e2"></i><i class="tk-em e3"></i></div></div>
+                <div class="lk-pillar near l"><div class="shaft"></div></div>
+                <div class="lk-pillar near r"><div class="shaft"></div></div>
+                <div class="lk-beam near"></div>
             </div>
-            <div class="flex justify-center">
-    <h2 class="text-xl font-black tracking-[0.2em] uppercase mb-2 text-white">
-        The Pleasure Room Is Locked
-    </h2>
-            </div>
-            <p id="lock-msg" class="text-xs font-bold opacity-60 uppercase tracking-widest mb-8 text-center text-rose-200">Tease the right keys to make me open up for you...🫦</p>
-            
-            <input type="password" id="auth-pin-input" onkeypress="if(event.key === 'Enter') checkSecurityPin()" placeholder="••••" class="w-full rounded-xl p-4 text-center text-3xl tracking-[0.5em] text-white outline-none mb-6 font-mono">
-            
-            <button onclick="checkSecurityPin()" class="w-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-black py-4 rounded-xl text-sm tracking-widest uppercase shadow-[0_5px_20px_rgba(255,20,147,0.4)] active:scale-95 transition-all border border-rose-400/50">
-                LICK HERE💦
-            </button>
-
-            <button onclick="handleForgotPin()" class="mt-6 text-[10px] font-bold opacity-80 uppercase tracking-widest text-rose-300 hover:text-white transition-colors underline">
-                Forgot PIN / Safe Word?
-            </button>
+            <div class="lk-vignette"></div>
+        </div>
+        <div class="lk-panel">
+            <h2 class="lk-title">The Pleasure<br>Room Is Locked</h2>
+            <p id="lock-msg" class="lk-sub">Tease the right keys to make me open up for you...🫦</p>
+            <div class="lk-runes" aria-hidden="true"></div>
+            <input type="password" id="auth-pin-input" onkeypress="if(event.key === 'Enter') checkSecurityPin()" placeholder="••••" autocomplete="off" class="lk-input">
+            <button type="button" onclick="checkSecurityPin()" class="lk-btn">LICK HERE💦</button>
+            <button type="button" onclick="handleForgotPin()" class="lk-forgot">Forgot PIN / Safe Word?</button>
         </div>
     </div>
 
@@ -702,8 +1020,8 @@
     </div>
 
     <div id="security-settings-modal" class="fixed inset-0 z-[9998] hidden bg-black/60 backdrop-blur-xl p-4 flex items-center justify-center transition-opacity">
-        <div class="glass-card w-full max-w-sm p-6 sm:p-8 relative">
-            <button onclick="closeSecurityModal();" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500 hover:text-white transition-all border border-white/10 active:scale-90"><i class="fas fa-times text-sm"></i></button>
+        <div class="glass-card w-full max-w-sm p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
+            <button onclick="closeSecurityModal();" class="absolute z-10 top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500 hover:text-white transition-all border border-white/10 active:scale-90"><i class="fas fa-times text-sm"></i></button>
             <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-2 text-white"><i class="fas fa-lock text-rose-500"></i> Kink Control</h3>
             
             <div class="space-y-4 mb-6">
@@ -725,6 +1043,16 @@
                     <i class="fas fa-life-ring absolute left-4 top-1/2 -translate-y-1/2 opacity-50 text-xs text-white"></i>
                     <input type="text" id="new-rec-key" placeholder="Change Safe Word (e.g. open123)" class="w-full rounded-xl p-3 pl-10 outline-none font-bold text-sm text-white">
                 </div>
+                <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-amber-300 mb-3 flex items-center gap-2"><i class="fas fa-image"></i> Lock Screen Picture</p>
+                    <img id="lock-bg-preview" alt="" class="hidden w-full h-24 object-cover rounded-lg mb-3 border border-white/10">
+                    <div class="flex gap-2 mb-3">
+                        <label class="flex-1 text-center py-2.5 rounded-lg bg-white/10 border border-white/15 text-[10px] font-black uppercase tracking-widest cursor-pointer active:scale-95 transition-all text-white">Choose Picture<input type="file" accept="image/*" class="hidden" onchange="lockBgPick(event)"></label>
+                        <button type="button" id="lock-bg-remove" onclick="lockBgClear()" class="hidden px-4 py-2.5 rounded-lg bg-red-500/20 border border-red-400/40 text-[10px] font-black uppercase tracking-widest text-red-200 active:scale-95 transition-all">Remove</button>
+                    </div>
+                    <label class="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-80 text-white">Darkness <input type="range" id="lock-dim-range" min="10" max="90" value="45" oninput="lockBgDim(this.value)" class="flex-1"></label>
+                    <p class="text-[9px] opacity-60 mt-2 leading-tight text-gray-300">The picture fills the dark areas around the door.</p>
+                </div>
             </div>
             <button onclick="saveSecuritySettings()" class="w-full py-3 bg-gradient-to-r from-rose-600 to-pink-600 text-white rounded-xl font-black text-xs tracking-widest uppercase shadow-[0_5px_20px_rgba(255,20,147,0.4)] border border-rose-400/50 active:scale-95 transition-all">Lock Me Up</button>
         </div>
@@ -744,7 +1072,7 @@
 
     <div id="update-log-modal" class="fixed inset-0 z-[1200] hidden flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 transition-opacity">
         <div class="glass-card w-full max-w-md p-6 sm:p-8 relative flex flex-col max-h-[85vh]" onclick="event.stopPropagation()">
-            <button onclick="closeUpdateLog();" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500 hover:text-white transition-all border border-white/10 active:scale-90"><i class="fas fa-times text-sm"></i></button>
+            <button onclick="closeUpdateLog();" class="absolute z-10 top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500 hover:text-white transition-all border border-white/10 active:scale-90"><i class="fas fa-times text-sm"></i></button>
             <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2 text-white"><i class="fas fa-history text-rose-500"></i> Update Log</h3>
             <div id="update-log-content" class="flex-grow overflow-y-auto custom-scrollbar space-y-2 mb-4 pr-2"></div>
             <button onclick="clearUpdateLog()" class="w-full py-3 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-black text-xs tracking-widest uppercase active:scale-95 transition-all">Clear Log</button>
@@ -753,7 +1081,7 @@
 
     <div id="tourney-history-modal" class="fixed inset-0 z-[1300] hidden flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 transition-opacity">
         <div class="glass-card w-full max-w-md p-6 relative max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
-            <button onclick="document.getElementById('tourney-history-modal').classList.add('hidden')" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-red-500 hover:text-white transition-all active:scale-90"><i class="fas fa-times text-sm"></i></button>
+            <button onclick="document.getElementById('tourney-history-modal').classList.add('hidden')" class="absolute z-10 top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-red-500 hover:text-white transition-all active:scale-90"><i class="fas fa-times text-sm"></i></button>
             <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2 text-yellow-400 drop-shadow-md"><i class="fas fa-crown"></i> Hall of Champions</h3>
             <div id="tourney-history-content" class="flex-grow overflow-y-auto custom-scrollbar space-y-2 pr-2"></div>
         </div>
@@ -1156,7 +1484,7 @@
     <div id="modal" class="fixed inset-0 z-[1100] hidden flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 transition-opacity">
         <div class="glass-card w-full max-w-md p-5 sm:p-8 relative max-h-[90vh] overflow-y-auto custom-scrollbar" onclick="event.stopPropagation()">
             
-            <button onclick="closeModal();" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500 hover:text-white transition-all border border-white/10 active:scale-90 shadow-sm"><i class="fas fa-times text-sm"></i></button>
+            <button onclick="closeModal();" class="absolute z-10 top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500 hover:text-white transition-all border border-white/10 active:scale-90 shadow-sm"><i class="fas fa-times text-sm"></i></button>
 
             <h3 id="modal-title" class="text-xl sm:text-2xl font-black mb-5 tracking-tight text-white drop-shadow-md">New Temptation</h3>
 
@@ -1239,7 +1567,7 @@
     <!-- SECTION EDIT MODAL (Updated for Cinematic & Legendary Features) -->
     <div id="section-modal" class="fixed inset-0 z-[1200] hidden flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 transition-opacity">
         <div class="glass-card w-full max-w-sm p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto custom-scrollbar" onclick="event.stopPropagation()">
-            <button onclick="closeSectionModal();" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-red-500 hover:text-white transition-all active:scale-90 shadow-sm"><i class="fas fa-times text-sm"></i></button>
+            <button onclick="closeSectionModal();" class="absolute z-10 top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-red-500 hover:text-white transition-all active:scale-90 shadow-sm"><i class="fas fa-times text-sm"></i></button>
 
             <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2 text-white drop-shadow-md"><i class="fas fa-layer-group text-rose-400"></i> <span id="sec-modal-title">New Fantasy Realm</span></h3>
             
@@ -1247,7 +1575,7 @@
                 <!-- Section Name -->
                 <div class="relative">
                     <i class="fas fa-heading absolute left-4 top-1/2 -translate-y-1/2 opacity-50 text-xs text-white"></i>
-                    <input type="text" id="sec-name-input" placeholder="Name your kink..." class="w-full rounded-xl p-3.5 pl-10 outline-none font-bold text-sm text-white">
+                    <input type="text" id="sec-name-input" oninput="refreshSecThemeUI(true)" placeholder="Name your kink..." class="w-full rounded-xl p-3.5 pl-10 outline-none font-bold text-sm text-white">
                 </div>
 
                 <!-- Section Description (For Cinematic Intro) -->
@@ -1266,6 +1594,18 @@
                     <input type="file" id="sec-cover-input" class="hidden" accept="image/*" onchange="handleSecCoverChange(event)">
                 </div>
                 
+                <!-- Empire Look (Empire Rebuild step 1) -->
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/10 shadow-inner flex flex-col gap-3">
+                    <label class="text-[10px] font-black uppercase tracking-widest opacity-70 block text-white">Empire Look <span id="sec-theme-hint" class="opacity-70 normal-case tracking-normal font-bold"></span></label>
+                    <select id="sec-theme-preset" onchange="onSecThemePresetChange()" class="w-full rounded-xl p-3 outline-none font-bold text-xs text-white bg-black/40 border border-white/10"></select>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <label class="flex items-center gap-2 text-[10px] font-black tracking-widest text-white opacity-80">Main <input type="color" id="sec-theme-accent" oninput="onSecThemeColorInput('accent')" class="w-9 h-9 rounded-lg bg-transparent border border-white/20 cursor-pointer p-0"></label>
+                        <label class="flex items-center gap-2 text-[10px] font-black tracking-widest text-white opacity-80">Second <input type="color" id="sec-theme-accent2" oninput="onSecThemeColorInput('accent2')" class="w-9 h-9 rounded-lg bg-transparent border border-white/20 cursor-pointer p-0"></label>
+                        <select id="sec-theme-font" onchange="refreshSecThemeUI(false)" class="flex-grow min-w-[120px] rounded-xl p-2.5 outline-none font-bold text-xs text-white bg-black/40 border border-white/10"></select>
+                    </div>
+                    <div id="sec-theme-preview" class="rounded-xl h-14 flex items-center justify-center text-xl font-black tracking-widest text-white border border-white/10 truncate px-3"></div>
+                </div>
+
                 <!-- Legendary Toggle -->
                 <label class="flex items-center gap-3 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 p-3 rounded-xl border border-yellow-500/30 cursor-pointer shadow-inner">
                     <input type="checkbox" id="sec-legendary-checkbox" class="w-4 h-4 accent-yellow-500 cursor-pointer">
@@ -2880,14 +3220,80 @@
                 }
             } else {
                 showToast("Try harder baby...", true);
+                try { lockHallDeny(); } catch (e) {}
             }
             document.getElementById('auth-pin-input').value = "";
+            try { lockHallPaint(); } catch (e) {}
         }
 
+        // Lock screen: runes light up as keys are typed, the door seam charges, a wrong PIN shakes the door,
+        // a right one swings it open before the overlay fades. (Purely visual; the check above is unchanged.)
+        const lockHallUI = (function () {
+            const ov = document.getElementById('lock-overlay'), inp = document.getElementById('auth-pin-input');
+            if (!ov || !inp) return null;
+            const runes = ov.querySelector('.lk-runes'), hall = ov.querySelector('.lk-hall'), bgEl = ov.querySelector('.lk-bgimg');
+            function applyBg() { // the picked picture shows through every dark area of the lock screen
+                let data = null, dim = 45; try { data = localStorage.getItem('v_max_lock_bg'); dim = parseInt(localStorage.getItem('v_max_lock_dim') || '45', 10); } catch (e) {}
+                if (data) { bgEl.style.backgroundImage = 'url("' + data + '")'; ov.style.setProperty('--lk-dim', (Math.max(10, Math.min(90, dim)) / 100).toFixed(2)); ov.classList.add('has-bg'); }
+                else { bgEl.style.backgroundImage = ''; ov.classList.remove('has-bg'); }
+            }
+            applyBg();
+            function paint() {
+                const n = inp.value.length, show = Math.min(8, Math.max(4, n)); runes.innerHTML = '';
+                for (let i = 0; i < show; i++) { const d = document.createElement('i'); if (i < n) d.className = 'on'; runes.appendChild(d); }
+                ov.style.setProperty('--lk-charge', Math.min(1, n / 6));
+            }
+            inp.addEventListener('input', paint);
+            if (window.visualViewport) { // keep the panel above the on-screen keyboard
+                const fit = () => { ov.style.height = window.visualViewport.height + 'px'; ov.style.top = window.visualViewport.offsetTop + 'px'; };
+                window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit); fit();
+            }
+            paint();
+            return {
+                paint, applyBg,
+                open() {
+                    const fancy = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches && !document.documentElement.classList.contains('low-power');
+                    if (!fancy) return 0; // phones: skip the 3D door swing, the overlay just fades
+                    hall.classList.add('open'); ov.classList.add('opening'); return 950;
+                },
+                reset() { hall.classList.remove('open'); ov.classList.remove('opening', 'deny'); inp.value = ''; paint(); },
+                deny() { ov.classList.remove('deny'); void ov.offsetWidth; ov.classList.add('deny'); setTimeout(() => ov.classList.remove('deny'), 600); }
+            };
+        })();
+        function lockHallPaint() { if (lockHallUI) lockHallUI.paint(); }
+        // Kink Control > Lock Screen Picture: pick, darken, remove. Stored on this device only, shrunk to keep it small.
+        function lockBgSyncUI() {
+            let data = null, dim = 45; try { data = localStorage.getItem('v_max_lock_bg'); dim = parseInt(localStorage.getItem('v_max_lock_dim') || '45', 10); } catch (e) {}
+            const pv = document.getElementById('lock-bg-preview'), rg = document.getElementById('lock-dim-range'), rm = document.getElementById('lock-bg-remove');
+            if (pv) { pv.classList.toggle('hidden', !data); if (data) pv.src = data; }
+            if (rm) rm.classList.toggle('hidden', !data);
+            if (rg) rg.value = dim;
+        }
+        function lockBgPick(e) {
+            const file = e.target.files && e.target.files[0]; e.target.value = ''; if (!file) return;
+            const img = new Image(), url = URL.createObjectURL(file);
+            img.onload = () => {
+                const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+                c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+                const data = c.toDataURL('image/jpeg', 0.82);
+                try { localStorage.setItem('v_max_lock_bg', data); } catch (err) { showToast('Picture is too big to store. Try a smaller one.', true); return; }
+                if (lockHallUI) lockHallUI.applyBg(); lockBgSyncUI(); showToast('Lock screen picture set!');
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); showToast('Could not read that picture.', true); };
+            img.src = url;
+        }
+        function lockBgClear() { try { localStorage.removeItem('v_max_lock_bg'); } catch (e) {} if (lockHallUI) lockHallUI.applyBg(); lockBgSyncUI(); showToast('Lock screen picture removed.'); }
+        function lockBgDim(v) { try { localStorage.setItem('v_max_lock_dim', String(v)); } catch (e) {} if (lockHallUI) lockHallUI.applyBg(); }
+        function lockHallDeny() { if (lockHallUI) lockHallUI.deny(); }
+
         function unlockSystem() {
-            document.getElementById('lock-overlay').style.opacity = '0';
-            setTimeout(() => { document.getElementById('lock-overlay').classList.add('hidden'); }, 500);
-            refreshData(); 
+            const lockDelay = lockHallUI ? lockHallUI.open() : 0; // door swings open first, then the overlay fades
+            setTimeout(() => {
+                document.getElementById('lock-overlay').style.opacity = '0';
+                setTimeout(() => { document.getElementById('lock-overlay').classList.add('hidden'); if (lockHallUI) lockHallUI.reset(); }, 500);
+            }, lockDelay);
+            refreshData(() => { try { codexMark('visit', activeSectionId); } catch (e) {} try { empireSyncStart(); } catch (e) {} try { maybeOpenGatesOnLaunch(); } catch (e) {} }); 
         }
 
         function handleForgotPin() {
@@ -2915,6 +3321,7 @@
 
         function openSecurityModal() {
             document.getElementById('disp-rec-key').innerText = RECOVERY_KEY;
+            try { lockBgSyncUI(); } catch (e) {}
             document.getElementById('security-settings-modal').classList.remove('hidden');
         }
 
@@ -3289,11 +3696,135 @@
         // run a lighter version of it. Same check the aurora/no-blur/via-browser
         // handling already uses, just read from the <html> class instead of
         // re-running the feature detection.
+        // ===== EMPIRE REBUILD · STEP 1: THEME ENGINE =====
+        // Every realm (custom section) gets a look. sec.theme = { preset, accent, accent2, font }.
+        // preset 'auto' = detected from the realm's NAME each time (rename it and the look follows).
+        // accent / accent2 / font = null means "use the preset's"; a hex/key means the user customised it.
+        // Old realms with no sec.theme keep working: they are simply treated as 'auto'.
+        const EMPIRE_FONTS = {
+            outfit:   "'Outfit', sans-serif",
+            cinzel:   "'Cinzel', 'Times New Roman', serif",
+            garamond: "'Cormorant Garamond', Georgia, serif",
+            uncial:   "'Uncial Antiqua', 'Times New Roman', serif",
+            mincho:   "'Shippori Mincho', 'Times New Roman', serif",
+            orbitron: "'Orbitron', 'Outfit', sans-serif"
+        };
+        const EMPIRE_FONT_LABELS = { outfit: 'Modern', cinzel: 'Classical', garamond: 'Royal', uncial: 'Norse', mincho: 'Japanese', orbitron: 'Futuristic' };
+        const EMPIRE_PRESETS = {
+            default:  { label: 'Classic Rose', accent: '#ff1493', accent2: '#7b2cbf', bg: '#14030a', font: 'outfit',   keys: [], bn: [] },
+            roman:    { label: 'Roman',        accent: '#d4a017', accent2: '#9b1b30', bg: '#1a0a08', font: 'cinzel',   keys: ['roman','rome','caesar','legion','legions','gladiator'], bn: ['রোম'] },
+            egypt:    { label: 'Egyptian',     accent: '#e0b050', accent2: '#1fa3a3', bg: '#1a1205', font: 'cinzel',   keys: ['egypt','egyptian','pharaoh','pyramid','nile','cleopatra'], bn: ['মিশর','ফেরাউন'] },
+            greek:    { label: 'Greek',        accent: '#5aa9e6', accent2: '#e8e2d0', bg: '#08121c', font: 'cinzel',   keys: ['greek','greece','athens','athenian','sparta','spartan','olympus','zeus'], bn: ['গ্রিক','গ্রীক','স্পার্টা'] },
+            viking:   { label: 'Viking',       accent: '#7fc4e8', accent2: '#8a5a3b', bg: '#07111a', font: 'uncial',   keys: ['viking','norse','nordic','odin','thor','valhalla'], bn: ['ভাইকিং'] },
+            medieval: { label: 'Medieval',     accent: '#c0392b', accent2: '#a8a8b3', bg: '#12080a', font: 'garamond', keys: ['medieval','knight','castle','crusade','crusader','kingdom'], bn: ['নাইট'] },
+            samurai:  { label: 'Samurai',      accent: '#e63946', accent2: '#f1e9da', bg: '#12060a', font: 'mincho',   keys: ['japan','japanese','samurai','shogun','ninja','edo','geisha'], bn: ['জাপান','সামুরাই'] },
+            ottoman:  { label: 'Ottoman',      accent: '#1fa37a', accent2: '#d4a017', bg: '#06130f', font: 'cinzel',   keys: ['ottoman','turkish','sultan','sultanate','istanbul','mughal','persian','persia'], bn: ['অটোমান','তুর্কি','মুঘল','পারস্য'] },
+            aztec:    { label: 'Aztec',        accent: '#e07b1f', accent2: '#1f9d8a', bg: '#150a04', font: 'uncial',   keys: ['aztec','maya','mayan','inca'], bn: [] },
+            gothic:   { label: 'Gothic',       accent: '#b01030', accent2: '#6b1fb0', bg: '#0c0309', font: 'garamond', keys: ['vampire','gothic','dracula'], bn: [] },
+            cyber:    { label: 'Cyber',        accent: '#00e5ff', accent2: '#ff2bd6', bg: '#050816', font: 'orbitron', keys: ['cyber','cyberpunk','futuristic','neon','robot','android','sci-fi'], bn: [] }
+        };
+        function _ge(id) { return document.getElementById(id); }
+        function detectEmpirePreset(name) {
+            const n = String(name || '').toLowerCase();
+            for (const id in EMPIRE_PRESETS) {
+                const p = EMPIRE_PRESETS[id];
+                if (p.keys.length && new RegExp('(?:^|[^a-z])(?:' + p.keys.join('|') + ')s?(?:[^a-z]|$)').test(n)) return id;
+                if (p.bn.some(k => n.indexOf(k) !== -1)) return id;
+            }
+            return 'default';
+        }
+        function getEmpireTheme(sec) {
+            const t = (sec && sec.theme) || {};
+            const hex = /^#[0-9a-f]{6}$/i;
+            const id = (t.preset && t.preset !== 'auto' && EMPIRE_PRESETS[t.preset]) ? t.preset : detectEmpirePreset(sec && sec.name);
+            const p = EMPIRE_PRESETS[id];
+            return {
+                id, label: p.label, bg: p.bg,
+                accent: hex.test(t.accent) ? t.accent : p.accent,
+                accent2: hex.test(t.accent2) ? t.accent2 : p.accent2,
+                fontKey: EMPIRE_FONTS[t.font] ? t.font : p.font,
+                custom: !!(hex.test(t.accent) || hex.test(t.accent2))
+            };
+        }
+        function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+        function applyEmpireTheme(sec) {
+            try {
+                const th = getEmpireTheme(sec); const st = document.body.style;
+                const [r, g, b] = hexToRgb(th.accent);
+                st.setProperty('--emp-accent', th.accent);
+                st.setProperty('--emp-accent2', th.accent2);
+                st.setProperty('--emp-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.55)');
+                st.setProperty('--emp-font', EMPIRE_FONTS[th.fontKey]);
+                if (th.id === 'default' && !th.custom) {
+                    // plain realm: let the original stylesheet colours apply untouched
+                    ['--accent', '--accent-hover', '--glass-highlight', '--shadow-lg'].forEach(k => st.removeProperty(k));
+                } else {
+                    st.setProperty('--accent', th.accent);
+                    st.setProperty('--accent-hover', th.accent2);
+                    st.setProperty('--glass-highlight', 'rgba(' + r + ',' + g + ',' + b + ',0.18)');
+                    st.setProperty('--shadow-lg', '0 12px 40px rgba(' + r + ',' + g + ',' + b + ',0.18)');
+                }
+                document.body.dataset.empire = th.id;
+                return th;
+            } catch (e) { return null; }
+        }
+
+        // ----- realm modal: Empire Look controls -----
+        let secThemeTouched = { accent: false, accent2: false };
+        function initSecThemeUI() {
+            const ps = _ge('sec-theme-preset'); if (!ps || ps.options.length) return;
+            let h = '<option class="text-black" value="auto">Auto (from the name)</option>';
+            Object.keys(EMPIRE_PRESETS).forEach(id => { h += '<option class="text-black" value="' + id + '">' + EMPIRE_PRESETS[id].label + '</option>'; });
+            ps.innerHTML = h;
+            let f = '<option class="text-black" value="">Font: from look</option>';
+            Object.keys(EMPIRE_FONTS).forEach(k => { f += '<option class="text-black" value="' + k + '">' + EMPIRE_FONT_LABELS[k] + '</option>'; });
+            _ge('sec-theme-font').innerHTML = f;
+        }
+        function secThemeDraft() {
+            if (!_ge('sec-theme-preset')) return null;
+            return {
+                preset: _ge('sec-theme-preset').value || 'auto',
+                accent: secThemeTouched.accent ? _ge('sec-theme-accent').value : null,
+                accent2: secThemeTouched.accent2 ? _ge('sec-theme-accent2').value : null,
+                font: _ge('sec-theme-font').value || null
+            };
+        }
+        function refreshSecThemeUI(syncPickers) {
+            if (!_ge('sec-theme-preview')) return;
+            const draft = secThemeDraft(); const name = _ge('sec-name-input').value.trim();
+            const th = getEmpireTheme({ name: name, theme: draft });
+            _ge('sec-theme-hint').innerText = draft.preset === 'auto' ? '· auto: ' + th.label : '';
+            if (syncPickers) {
+                if (!secThemeTouched.accent) _ge('sec-theme-accent').value = th.accent;
+                if (!secThemeTouched.accent2) _ge('sec-theme-accent2').value = th.accent2;
+            }
+            const [a1, a2, a3] = hexToRgb(_ge('sec-theme-accent').value); const [c1, c2, c3] = hexToRgb(_ge('sec-theme-accent2').value);
+            const pv = _ge('sec-theme-preview');
+            pv.style.fontFamily = EMPIRE_FONTS[th.fontKey];
+            pv.style.background = 'radial-gradient(circle at 20% 20%, rgba(' + a1 + ',' + a2 + ',' + a3 + ',0.45), transparent 60%), radial-gradient(circle at 85% 80%, rgba(' + c1 + ',' + c2 + ',' + c3 + ',0.40), transparent 60%), ' + th.bg;
+            pv.style.textShadow = '0 0 18px rgba(' + a1 + ',' + a2 + ',' + a3 + ',0.8)';
+            pv.innerText = name || 'Your Empire';
+        }
+        function onSecThemePresetChange() { secThemeTouched = { accent: false, accent2: false }; refreshSecThemeUI(true); }
+        function onSecThemeColorInput(which) { secThemeTouched[which] = true; refreshSecThemeUI(false); }
+        function loadSecThemeIntoModal(sec) {
+            initSecThemeUI();
+            const t = (sec && sec.theme) || {};
+            const hex = /^#[0-9a-f]{6}$/i;
+            _ge('sec-theme-preset').value = (t.preset && (t.preset === 'auto' || EMPIRE_PRESETS[t.preset])) ? t.preset : 'auto';
+            secThemeTouched = { accent: hex.test(t.accent), accent2: hex.test(t.accent2) };
+            _ge('sec-theme-font').value = EMPIRE_FONTS[t.font] ? t.font : '';
+            if (secThemeTouched.accent) _ge('sec-theme-accent').value = t.accent;
+            if (secThemeTouched.accent2) _ge('sec-theme-accent2').value = t.accent2;
+            refreshSecThemeUI(true);
+        }
+
         function isCinematicEnabled() { return !document.documentElement.classList.contains('low-power'); }
 
         function updateCinematicHeader() {
-            if (isGlobalSearch || !isCinematicEnabled()) return;
             const sec = customSections.find(s => s.id === activeSectionId);
+            const theme = sec ? applyEmpireTheme(sec) : null; // runs even in low-power mode: colours + fonts cost almost nothing
+            if (isGlobalSearch || !isCinematicEnabled()) return;
             if (!sec) return;
 
             const bgEl = document.getElementById('cinematic-bg');
@@ -3312,6 +3843,11 @@
             } else {
                 bgEl.classList.add('hidden');
                 fallbackEl.classList.remove('hidden');
+                if (!fallbackEl.dataset.origBg) fallbackEl.dataset.origBg = fallbackEl.style.background;
+                if (theme && !(theme.id === 'default' && !theme.custom)) {
+                    const [a1, a2, a3] = hexToRgb(theme.accent), [c1, c2, c3] = hexToRgb(theme.accent2);
+                    fallbackEl.style.background = `radial-gradient(circle at 25% 15%, rgba(${a1},${a2},${a3},0.24), transparent 55%), radial-gradient(circle at 85% 75%, rgba(${c1},${c2},${c3},0.20), transparent 55%), linear-gradient(160deg, ${theme.bg} 0%, #07020a 55%, #000 100%)`;
+                } else { fallbackEl.style.background = fallbackEl.dataset.origBg; }
                 fallbackIconEl.className = `fas ${sec.icon || 'fa-layer-group'} absolute`;
                 overlayEl.className = 'absolute inset-0 bg-black/10 z-10'; // the gradient fallback is already dark; a heavy overlay just flattens it back to black
             }
@@ -3335,19 +3871,24 @@
         }
         
         function renderNav() {
+            // Empire Rebuild: the long section list is gone. One button shows the current empire and opens the Gates;
+            // Q / W shortcuts and the Gates carousel do the switching. The pen edits the current empire.
+            const curSec = customSections.find(s => s.id === activeSectionId) || customSections[0];
             let desktopHTML = '';
-            customSections.forEach(sec => {
-                const isActive = (!isGlobalSearch && activePage === 'vault' && sec.id === activeSectionId);
-                const activeClass = isActive ? 'nav-active' : 'opacity-70 hover:opacity-100 hover:bg-white/5 border border-transparent hover:border-white/10';
-                const legendIcon = sec.isLegendary ? ' <i class="fas fa-crown text-yellow-400 ml-1 drop-shadow-sm text-[10px]"></i>' : '';
-                desktopHTML += `
+            if (curSec) {
+                const isActive = (!isGlobalSearch && activePage === 'vault');
+                const nCur = vaultData.filter(i => i.sectionId === curSec.id).length;
+                desktopHTML = `
                 <div class="flex items-center w-full group mb-1">
-                    <button onclick="switchSection('${sec.id}')" class="nav-item sec-nav flex items-center gap-4 px-6 py-3.5 rounded-2xl font-bold flex-grow text-left text-sm ${activeClass}">
-                        <i class="fas ${sec.icon} w-5 text-center drop-shadow-sm ${sec.isLegendary ? 'text-yellow-400' : ''}"></i> <span class="truncate ${sec.isLegendary ? 'text-yellow-100' : ''}">${sec.name}${legendIcon}</span>
+                    <button onclick="openEmpireGates()" class="nav-item sec-nav flex items-center gap-4 px-5 py-3.5 rounded-2xl font-bold flex-grow text-left text-sm ${isActive ? 'nav-active' : 'opacity-80 hover:opacity-100 hover:bg-white/5 border border-white/10'}" title="Switch empire (W)">
+                        <i class="fas ${curSec.icon} w-5 text-center drop-shadow-sm ${curSec.isLegendary ? 'text-yellow-400' : ''}"></i>
+                        <span class="min-w-0 flex-grow"><span class="block truncate ${curSec.isLegendary ? 'text-yellow-100' : ''}">${escHtml(curSec.name)}</span><span class="block text-[10px] font-semibold opacity-60 tracking-wider">${nCur} ARTIFACTS · SWITCH</span></span>
+                        <i class="fas fa-archway text-xs opacity-60"></i>
                     </button>
-                    <button onclick="editSectionModal('${sec.id}')" class="w-10 h-10 flex-shrink-0 flex items-center justify-center text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Edit Section"><i class="fas fa-pen"></i></button>
-                </div>`;
-            });
+                    <button onclick="editSectionModal('${curSec.id}')" class="w-10 h-10 flex-shrink-0 flex items-center justify-center text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Edit this empire"><i class="fas fa-pen"></i></button>
+                </div>
+                <div class="px-3 pb-2 text-[10px] opacity-40 tracking-wide">W gates · C codex · hold Q wheel</div>`;
+            }
             document.getElementById('desktop-sections-list').innerHTML = desktopHTML;
             
             document.querySelectorAll('.sys-nav').forEach(el => { el.classList.remove('nav-active'); el.classList.add('opacity-70'); });
@@ -3360,9 +3901,8 @@
 
             let mobileHTML = '';
             customSections.forEach(sec => {
-                const isActive = (!isGlobalSearch && activePage === 'vault' && sec.id === activeSectionId);
-                const activeClass = isActive ? 'nav-active-mobile drop-shadow-lg' : '';
-                mobileHTML += `<button onclick="switchSection('${sec.id}')" class="w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center text-xl nav-mobile-btn ${activeClass}" title="${sec.name}"><i class="fas ${sec.icon} ${sec.isLegendary ? 'text-yellow-400' : ''}"></i></button>`;
+                const isActiveM = (!isGlobalSearch && activePage === 'vault' && sec.id === activeSectionId);
+                mobileHTML += `<button onclick="switchSectionCore('${sec.id}')" class="w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center text-xl nav-mobile-btn ${isActiveM ? 'nav-active-mobile drop-shadow-lg' : ''}" title="${escHtml(sec.name)}"><i class="fas ${sec.icon} ${sec.isLegendary ? 'text-yellow-400' : ''}"></i></button>`;
             });
             
             mobileHTML += `<div class="w-[1px] h-6 bg-white/20 mx-1 flex-shrink-0 rounded-full"></div>`;
@@ -3382,7 +3922,8 @@
             <button onclick="nav('stats', this, true);" class="w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center text-xl nav-mobile-btn ${isStatsActive}" title="Your Dirty Habits"><i class="fa-solid fa-chart-pie"></i></button>
             <button onclick="nav('settings', this, true);" class="w-12 h-12 rounded-full flex flex-shrink-0 items-center justify-center text-xl nav-mobile-btn ${isSettingsActive}" title="Playroom Rules"><i class="fas fa-sliders-h"></i></button>`;
             
-            document.getElementById('mobile-dynamic-nav').innerHTML = mobileHTML;
+            const mNav = document.getElementById('mobile-dynamic-nav'); mNav.innerHTML = mobileHTML;
+            const mAct = mNav.querySelector('.nav-active-mobile'); if (mAct) mNav.scrollLeft = mAct.offsetLeft - mNav.clientWidth / 2 + mAct.offsetWidth / 2;
 
             let dropdownHTML = '';
             customSections.forEach(sec => { dropdownHTML += `<option class="text-black" value="${sec.id}">${sec.name} ${sec.isLegendary?'(Legendary)':''}</option>`; });
@@ -3396,7 +3937,703 @@
             document.getElementById('mobile-settings-sections-list').innerHTML = mobileSettingsSecHTML;
         }
 
+        // ===== EMPIRE REBUILD · STEP 2: PORTAL ENTRY =====
+        // Switching realm = the old world zooms away, a portal of the new empire's colours opens and shows its
+        // name + lore, then the new world arrives. Click anywhere to skip. Light (fade-only) on low-power devices,
+        // skipped entirely for reduced-motion users and in the decoy ("fake") security mode.
+        let portalBusy = false;
+        function empirePortalSupported() {
+            return typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function' &&
+                !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        }
+        function ensurePortalEl() {
+            let el = _ge('empire-portal'); if (el) return el;
+            el = document.createElement('div'); el.id = 'empire-portal';
+            el.innerHTML = '<div class="ep-bg"></div><div class="ep-ring"></div><div class="ep-ring ep-ring2"></div><div class="ep-content"><i class="ep-icon fas"></i><h2 class="ep-title"></h2><div class="ep-line"></div><p class="ep-desc"></p><div class="ep-count"></div></div>';
+            document.body.appendChild(el); return el;
+        }
+        function playEmpirePortal(sec, doSwitch) {
+            portalBusy = true;
+            const full = !document.documentElement.classList.contains('low-power');
+            const th = getEmpireTheme(sec);
+            const el = ensurePortalEl();
+            const bg = el.querySelector('.ep-bg'), rings = el.querySelectorAll('.ep-ring'), content = el.querySelector('.ep-content');
+            const [r, g, b] = hexToRgb(th.accent), [r2, g2, b2] = hexToRgb(th.accent2);
+            el.style.setProperty('--emp-accent', th.accent); el.style.setProperty('--emp-accent2', th.accent2);
+            el.style.setProperty('--emp-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.55)'); el.style.setProperty('--emp-font', EMPIRE_FONTS[th.fontKey]);
+            bg.style.background = 'radial-gradient(circle at 50% 50%, rgba(' + r + ',' + g + ',' + b + ',0.38), transparent 58%), radial-gradient(circle at 80% 85%, rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.22), transparent 55%), linear-gradient(160deg, ' + th.bg + ', #000 75%)';
+            el.querySelector('.ep-icon').className = 'ep-icon fas ' + (sec.icon || 'fa-layer-group');
+            const titleEl = el.querySelector('.ep-title'); titleEl.textContent = sec.name || 'Realm'; titleEl.style.color = sec.isLegendary ? '#ffd700' : '';
+            const descEl = el.querySelector('.ep-desc'); descEl.textContent = sec.desc || ''; descEl.style.display = sec.desc ? '' : 'none';
+            const n = vaultData.filter(i => i.sectionId === sec.id).length;
+            el.querySelector('.ep-count').textContent = n + (n === 1 ? ' artifact' : ' artifacts') + ' within';
+
+            const anims = []; let skip = false, switched = false, done = false, curAnim = null, fs = null;
+            const run = (t, kf, o) => {
+                try { const a = t.animate(kf, Object.assign({ fill: 'forwards' }, o, skip ? { duration: 1, delay: 0 } : {})); anims.push(a); return a.finished.catch(() => {}); }
+                catch (e) { return Promise.resolve(); }
+            };
+            const sw = () => { if (!switched) { switched = true; try { doSwitch(); } catch (e) { console.error(e); } } };
+            const cleanup = () => {
+                if (done) return; done = true; clearTimeout(fs); clearTimeout(cap);
+                anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+                el.style.display = 'none'; el.onclick = null; portalBusy = false;
+            };
+            fs = setTimeout(() => { sw(); cleanup(); }, 6000); // failsafe: never leave the user stuck behind the overlay
+            const cap = setTimeout(() => { skip = true; anims.forEach(a => { try { a.finish(); } catch (e) {} }); }, 3000); // slow GPU/CPU: fast-forward after 3s
+            el.onclick = () => { skip = true; anims.forEach(a => { try { a.finish(); } catch (e) {} }); };
+            el.style.display = 'block';
+            const cur = document.querySelector('.page.active');
+
+            (async () => {
+                try {
+                    const phaseA = [run(el, [{ opacity: 0 }, { opacity: 1 }], { duration: full ? 420 : 150, easing: 'ease-in' })];
+                    if (full) {
+                        if (cur) { phaseA.push(run(cur, [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.35)', opacity: 0 }], { duration: 480, easing: 'cubic-bezier(.7,0,.84,0)' })); curAnim = anims[anims.length - 1]; }
+                        rings.forEach((rg, i) => { run(rg, [{ transform: 'scale(.15)', opacity: 0.95 }, { transform: 'scale(2.8)', opacity: 0 }], { duration: 1000, delay: i * 140, easing: 'cubic-bezier(.16,1,.3,1)' }); });
+                    }
+                    await Promise.all(phaseA);
+                    sw();                                   // the actual realm switch happens while the portal fully covers the screen
+                    if (curAnim) { try { curAnim.cancel(); } catch (e) {} }
+                    await run(content, [{ opacity: 0, transform: 'translateY(16px) scale(.96)' }, { opacity: 1, transform: 'translateY(0) scale(1)' }], { duration: full ? 560 : 220, easing: 'cubic-bezier(.16,1,.3,1)' });
+                    await run(content, [{ opacity: 1 }, { opacity: 1 }], { duration: full ? 650 : 300 });
+                    const next = document.querySelector('.page.active');
+                    const phaseC = [run(el, [{ opacity: 1 }, { opacity: 0 }], { duration: full ? 520 : 220, easing: 'ease-out' })];
+                    if (full && next) run(next, [{ transform: 'scale(.9)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 700, easing: 'cubic-bezier(.16,1,.3,1)' });
+                    await Promise.all(phaseC);
+                } catch (e) { console.error(e); sw(); }
+                finally { cleanup(); }
+            })();
+        }
+        // ===== EMPIRE REBUILD · STEP 3: EMPIRE WHEEL =====
+        // Hold Q (or tap the compass button) -> radial wheel of every realm. Move the mouse / finger to aim,
+        // release Q (or click / tap) to enter through the portal. 8 realms per page; mouse wheel or ‹ › flips pages.
+        const EMPIRE_WHEEL_PER_PAGE = 8;
+        const wheelState = { open: false, mode: 'tap', page: 0, items: [], hover: null, openedAt: 0, lastWheelAt: 0, px: -1, py: -1 };
+        window.addEventListener('pointermove', e => { wheelState.px = e.clientX; wheelState.py = e.clientY; }, { passive: true });
+
+        function wheelPolar(rad, deg) { const a = deg * Math.PI / 180; return [Math.cos(a) * rad, Math.sin(a) * rad]; }
+        function wheelWedgePath(r, R, a0, a1) {
+            const f = v => v.toFixed(2); const p0 = wheelPolar(R, a0), p1 = wheelPolar(R, a1), p2 = wheelPolar(r, a1), p3 = wheelPolar(r, a0);
+            const big = (a1 - a0) > 180 ? 1 : 0;
+            return 'M' + f(p0[0]) + ' ' + f(p0[1]) + ' A' + R + ' ' + R + ' 0 ' + big + ' 1 ' + f(p1[0]) + ' ' + f(p1[1]) + ' L' + f(p2[0]) + ' ' + f(p2[1]) + ' A' + r + ' ' + r + ' 0 ' + big + ' 0 ' + f(p3[0]) + ' ' + f(p3[1]) + ' Z';
+        }
+        function wheelSafeIcon(ic) { return /^fa-[a-z0-9-]+$/.test(ic || '') ? ic : 'fa-layer-group'; }
+        function wheelIndexFromAngle(dx, dy, n) { let ang = Math.atan2(dy, dx) * 180 / Math.PI + 90; ang = (ang % 360 + 360) % 360; return Math.floor(ang / (360 / n)) % n; }
+
+        function ensureWheelEl() {
+            let el = _ge('empire-wheel'); if (el) return el;
+            el = document.createElement('div'); el.id = 'empire-wheel';
+            el.innerHTML = '<div class="epw-glow"></div><div class="epw-stage"><svg class="epw-svg" viewBox="-300 -300 600 600"><defs></defs><g class="epw-segs"></g></svg><div class="epw-labs"></div>' +
+                '<div class="epw-hub"><i class="epw-hub-icon fas fa-compass"></i><div class="epw-hub-name"></div><div class="epw-hub-meta"></div><div class="epw-pager"><button type="button" data-d="-1" aria-label="Previous page">&#8249;</button><span></span><button type="button" data-d="1" aria-label="Next page">&#8250;</button></div></div></div><div class="epw-hint"></div>';
+            document.body.appendChild(el);
+            el.addEventListener('pointermove', e => { if (wheelState.open) setWheelHover(wheelPointIndex(e.clientX, e.clientY)); });
+            el.addEventListener('pointerdown', e => { if (wheelState.open) setWheelHover(wheelPointIndex(e.clientX, e.clientY)); });
+            el.addEventListener('click', e => {
+                const pg = e.target.closest && e.target.closest('.epw-pager button');
+                if (pg) { e.stopPropagation(); wheelFlipPage(parseInt(pg.dataset.d, 10)); return; }
+                const i = wheelPointIndex(e.clientX, e.clientY);
+                if (i !== null) selectWheelIdx(i); else if (!(e.target.closest && e.target.closest('.epw-hub'))) closeEmpireWheel();
+            });
+            el.addEventListener('wheel', e => {
+                e.preventDefault();
+                const pages = Math.ceil(customSections.length / EMPIRE_WHEEL_PER_PAGE); if (pages < 2) return;
+                const now = Date.now(); if (now - wheelState.lastWheelAt < 260) return; wheelState.lastWheelAt = now;
+                wheelFlipPage(e.deltaY > 0 ? 1 : -1);
+            }, { passive: false });
+            return el;
+        }
+        function wheelPointIndex(x, y) {
+            const stage = _ge('empire-wheel').querySelector('.epw-stage'); const rect = stage.getBoundingClientRect();
+            const dx = x - (rect.left + rect.width / 2), dy = y - (rect.top + rect.height / 2);
+            if (Math.hypot(dx, dy) < rect.width * (118 / 600)) return null; // inside the hub = nothing aimed at
+            const n = wheelState.items.length; return n ? wheelIndexFromAngle(dx, dy, n) : null;
+        }
+        function wheelBlockedByLayer() {
+            const ids = ['full-viewer', 'modal', 'shortcuts-modal', 'board-picker', 'board-modal', 'section-modal', 'update-log-modal', 'tourney-history-modal', 'security-settings-modal'];
+            for (const id of ids) { const m = _ge(id); if (m && !m.classList.contains('hidden')) return true; }
+            const lock = _ge('lock-overlay'), cur = _ge('curfew-overlay');
+            if (lock && !lock.classList.contains('hidden')) return true;
+            if (cur && !cur.classList.contains('hidden')) return true;
+            return !!window._recap;
+        }
+        function wheelAllowed() {
+            return !wheelState.open && !(typeof gatesState !== 'undefined' && gatesState.open) && !(typeof codexState !== 'undefined' && codexState.open) && !(typeof pactState !== 'undefined' && pactState.open) && !portalBusy && activeSecurityMode !== 'locked' && activeSecurityMode !== 'fake' && customSections.length > 0 && !wheelBlockedByLayer();
+        }
+        function renderWheelPage() {
+            const el = _ge('empire-wheel'); const per = EMPIRE_WHEEL_PER_PAGE;
+            const pages = Math.max(1, Math.ceil(customSections.length / per));
+            wheelState.page = Math.min(Math.max(wheelState.page, 0), pages - 1);
+            const items = customSections.slice(wheelState.page * per, wheelState.page * per + per);
+            wheelState.items = items; wheelState.hover = null;
+            const n = items.length, step = 360 / n, gap = n > 1 ? 3 : 0, r = 120, R = 285, mid = (r + R) / 2;
+            let defs = '', segs = '', labs = '';
+            items.forEach((sec, i) => {
+                const th = getEmpireTheme(sec); const edge = sec.isLegendary ? '#ffd700' : th.accent;
+                const a0 = -90 + i * step + gap / 2, a1 = -90 + (i + 1) * step - gap / 2 - (n === 1 ? 0.1 : 0);
+                const d = wheelWedgePath(r, R, a0, a1); const am = (a0 + a1) / 2; const c = wheelPolar(mid, am);
+                defs += '<clipPath id="epw-c' + i + '"><path d="' + d + '"/></clipPath><linearGradient id="epw-g' + i + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + th.accent + '" stop-opacity="0.55"/><stop offset="1" stop-color="' + th.accent2 + '" stop-opacity="0.4"/></linearGradient>';
+                const isCur = (sec.id === activeSectionId && activePage === 'vault');
+                let fill = '<path d="' + d + '" fill="' + th.bg + '"/><path d="' + d + '" fill="url(#epw-g' + i + ')"/>';
+                if (sec.cover) fill += '<image clip-path="url(#epw-c' + i + ')" href="' + escHtml(sec.cover) + '" x="' + (c[0] - 150).toFixed(1) + '" y="' + (c[1] - 150).toFixed(1) + '" width="300" height="300" preserveAspectRatio="xMidYMid slice"/>';
+                segs += '<g class="epw-seg' + (isCur ? ' cur' : '') + '" data-i="' + i + '" style="--c:' + edge + '">' + fill + '<path class="epw-shade" d="' + d + '"/><path class="epw-edge" d="' + d + '"/></g>';
+                labs += '<div class="epw-lab' + '" data-i="' + i + '" style="left:' + (50 + c[0] / 6).toFixed(2) + '%;top:' + (50 + c[1] / 6).toFixed(2) + '%;font-family:' + EMPIRE_FONTS[th.fontKey] + '"><i class="fas ' + wheelSafeIcon(sec.icon) + '" style="color:' + (sec.isLegendary ? '#ffd700' : '#fff') + '"></i><span>' + escHtml(sec.name || 'Realm') + '</span>' + (isCur ? '<em></em>' : '') + '</div>';
+            });
+            el.querySelector('defs').innerHTML = defs; el.querySelector('.epw-segs').innerHTML = segs; el.querySelector('.epw-labs').innerHTML = labs;
+            const pager = el.querySelector('.epw-pager'); pager.style.display = pages > 1 ? 'flex' : 'none'; pager.querySelector('span').textContent = (wheelState.page + 1) + ' / ' + pages;
+            setWheelHover(null);
+        }
+        function setWheelHover(i) {
+            if (i === wheelState.hover && _ge('empire-wheel').dataset.ready === '1') return;
+            const el = _ge('empire-wheel'); el.dataset.ready = '1'; wheelState.hover = i;
+            el.querySelectorAll('.epw-seg').forEach(g => g.classList.toggle('on', i !== null && +g.dataset.i === i));
+            el.querySelectorAll('.epw-lab').forEach(g => g.classList.toggle('on', i !== null && +g.dataset.i === i));
+            const hubIcon = el.querySelector('.epw-hub-icon'), hubName = el.querySelector('.epw-hub-name'), hubMeta = el.querySelector('.epw-hub-meta');
+            const sec = i !== null ? wheelState.items[i] : (customSections.find(s => s.id === activeSectionId) || customSections[0]);
+            const th = getEmpireTheme(sec); const [r, g, b] = hexToRgb(th.accent);
+            el.style.setProperty('--emp-accent', th.accent); el.style.setProperty('--emp-accent2', th.accent2);
+            el.style.setProperty('--emp-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.55)'); el.style.setProperty('--emp-font', EMPIRE_FONTS[th.fontKey]);
+            if (i !== null) {
+                const n = vaultData.filter(x => x.sectionId === sec.id).length;
+                hubIcon.className = 'epw-hub-icon fas ' + wheelSafeIcon(sec.icon); hubName.textContent = sec.name || 'Realm'; hubMeta.textContent = n + (n === 1 ? ' ARTIFACT' : ' ARTIFACTS');
+            } else {
+                hubIcon.className = 'epw-hub-icon fas fa-compass'; hubName.textContent = 'Choose an Empire'; hubMeta.textContent = customSections.length + (customSections.length === 1 ? ' REALM' : ' REALMS');
+            }
+        }
+        function wheelFlipPage(d) {
+            const pages = Math.ceil(customSections.length / EMPIRE_WHEEL_PER_PAGE); if (pages < 2) return;
+            wheelState.page = (wheelState.page + d + pages) % pages; renderWheelPage();
+        }
+        function wheelHintText() { return wheelState.mode === 'hold' ? 'Aim, then release Q to enter  ·  Esc to cancel' : 'Tap an empire to enter  ·  Esc to close'; }
+        function openEmpireWheel(mode) {
+            if (!wheelAllowed()) return;
+            const el = ensureWheelEl(); el.dataset.ready = '0';
+            wheelState.open = true; wheelState.mode = mode || 'tap'; wheelState.openedAt = Date.now();
+            const idx = customSections.findIndex(s => s.id === activeSectionId);
+            wheelState.page = idx >= 0 ? Math.floor(idx / EMPIRE_WHEEL_PER_PAGE) : 0;
+            el.style.display = 'block'; renderWheelPage();
+            el.querySelector('.epw-hint').textContent = wheelHintText();
+            void el.offsetWidth; el.classList.add('open');
+            if (wheelState.px >= 0) setWheelHover(wheelPointIndex(wheelState.px, wheelState.py)); // aim where the pointer already is
+        }
+        function closeEmpireWheel(instant) {
+            const el = _ge('empire-wheel'); if (!el || !wheelState.open) return;
+            wheelState.open = false; el.classList.remove('open');
+            if (instant) { el.style.display = 'none'; return; }
+            setTimeout(() => { if (!wheelState.open) el.style.display = 'none'; }, 190);
+        }
+        function selectWheelIdx(i) {
+            const sec = wheelState.items[i]; closeEmpireWheel(true); if (!sec) return; codexMark('flag', 'wheel');
+            if (sec.id === activeSectionId && activePage === 'vault') return;
+            switchSection(sec.id);
+        }
+        window.addEventListener('keydown', e => {
+            const isQ = (e.key === 'q' || e.key === 'Q');
+            if (wheelState.open) {
+                e.stopImmediatePropagation();
+                if (e.key === 'Escape') { e.preventDefault(); closeEmpireWheel(); }
+                else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                    e.preventDefault(); const n = wheelState.items.length; const cur = wheelState.hover;
+                    setWheelHover(cur === null ? (e.key === 'ArrowRight' ? 0 : n - 1) : (cur + (e.key === 'ArrowRight' ? 1 : n - 1)) % n);
+                }
+                else if (e.key === 'PageDown' || e.key === 'ArrowDown') { e.preventDefault(); wheelFlipPage(1); }
+                else if (e.key === 'PageUp' || e.key === 'ArrowUp') { e.preventDefault(); wheelFlipPage(-1); }
+                else if (e.key === 'Enter' && wheelState.hover !== null) { e.preventDefault(); selectWheelIdx(wheelState.hover); }
+                return;
+            }
+            if (!isQ || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+            const t = e.target, tag = t && t.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+            if (!wheelAllowed()) return;
+            e.preventDefault(); e.stopImmediatePropagation(); openEmpireWheel('hold');
+        }, true);
+        window.addEventListener('keyup', e => {
+            if (!wheelState.open || wheelState.mode !== 'hold' || (e.key !== 'q' && e.key !== 'Q')) return;
+            if (wheelState.hover !== null) { selectWheelIdx(wheelState.hover); return; }
+            if (Date.now() - wheelState.openedAt < 260) { // a quick tap on Q keeps the wheel open for clicking
+                wheelState.mode = 'tap'; const h = _ge('empire-wheel').querySelector('.epw-hint'); if (h) h.textContent = wheelHintText(); return;
+            }
+            closeEmpireWheel();
+        }, true);
+        window.addEventListener('blur', () => { if (wheelState.open && wheelState.mode === 'hold') closeEmpireWheel(); });
+
+        // ===== EMPIRE REBUILD · STEP 5: GATE CAROUSEL =====
+        // Press W (or tap the Gates button) -> cinematic coverflow of every empire as a tall "gate" card. The whole screen
+        // takes the focused empire's colours/cover. Swipe, drag, arrows or mouse wheel to browse; click / Enter to step
+        // through the portal. The last gate forges a brand-new empire. "Open on launch" shows it right after unlock.
+        const gatesState = { open: false, cur: 0, items: [], els: new Map(), moved: false, justDragged: false, lastWheelAt: 0, flip: false };
+        function gatesCardW() { return Math.min(window.innerWidth * 0.62, 340); }
+        function ensureGatesEl() {
+            let el = _ge('empire-gates'); if (el) return el;
+            el = document.createElement('div'); el.id = 'empire-gates';
+            el.innerHTML = '<div class="eg-bg"></div><div class="eg-bg"></div><div class="eg-wash"></div><div class="eg-track"></div>' +
+                '<button type="button" class="eg-ui eg-close" aria-label="Close">&#10005;</button>' +
+                '<button type="button" class="eg-ui eg-gear" aria-label="Options">&#9881;</button>' +
+                '<button type="button" class="eg-ui eg-book" aria-label="Codex" title="Codex (C)"><i class="fas fa-book-open"></i></button>' +
+                '<div class="eg-ui eg-panel"><label><input type="checkbox" class="eg-launch-cb"><span>Open on launch</span></label>' +
+                '<div style="display:none"><label><input type="checkbox" class="eg-sync-cb"><span>Real-world sync<small>Time of day + weather. Uses the city you type, or else your approximate location (about 10 km). Only that goes to open-meteo.com.</small></span></label>' +
+                '<div class="eg-city" style="margin-top:8px"><input type="text" class="eg-city-in" placeholder="Your city (optional)" maxlength="60" autocomplete="off"><button type="button" class="eg-city-go">SET</button></div><div class="eg-sync-status"></div></div>' +
+                '<label><input type="checkbox" class="eg-full-cb"><span>Full effects<small>Tilt, blur, particles and the long portal. May lag on weak phones. Reloads the app.</small></span></label></div>' +
+                '<div class="eg-ui eg-count"><span></span><div class="eg-dots"></div></div>';
+            document.body.appendChild(el);
+            const track = el.querySelector('.eg-track');
+            el.querySelector('.eg-close').addEventListener('click', e => { e.stopPropagation(); closeEmpireGates(); });
+            const cb = el.querySelector('.eg-launch-cb'); cb.checked = localStorage.getItem('v_max_gates_launch') === '1';
+            cb.addEventListener('change', () => { try { localStorage.setItem('v_max_gates_launch', cb.checked ? '1' : '0'); } catch (e) {} });
+            el.querySelector('.eg-book').addEventListener('click', e => { e.stopPropagation(); closeEmpireGates(true); openEmpireCodex(); });
+            const panel = el.querySelector('.eg-panel');
+            el.querySelector('.eg-gear').addEventListener('click', e => { e.stopPropagation(); panel.classList.toggle('open'); });
+            const sy = el.querySelector('.eg-sync-cb'), fu = el.querySelector('.eg-full-cb');
+            sy.addEventListener('change', () => empireSyncSet(sy.checked));
+            const cin = el.querySelector('.eg-city-in'), cgo = el.querySelector('.eg-city-go'); const goCity = () => empireSetCity(cin.value);
+            cgo.addEventListener('click', goCity); cin.addEventListener('keydown', e2 => { if (e2.key === 'Enter') { e2.preventDefault(); goCity(); } });
+            fu.addEventListener('change', () => { try { localStorage.setItem('v_max_force_full', fu.checked ? '1' : '0'); } catch (e) {} showToast(fu.checked ? 'Full effects on. Reloading...' : 'Light mode back on. Reloading...'); setTimeout(() => location.reload(), 600); });
+            let sx = 0, down = false;
+            el.addEventListener('pointerdown', e => { if (e.target.closest('.eg-ui, .eg-edit')) return; down = true; gatesState.moved = false; sx = e.clientX; });
+            el.addEventListener('pointermove', e => {
+                if (!down) return; const dx = e.clientX - sx; if (Math.abs(dx) > 8) gatesState.moved = true;
+                if (gatesState.moved) { track.style.transition = 'none'; track.style.transform = 'translateY(-50%) translateX(' + (dx * 0.35) + 'px)'; }
+            });
+            const end = e => {
+                if (!down) return; down = false; const dx = e.clientX - sx; track.style.transition = ''; track.style.transform = 'translateY(-50%)';
+                if (gatesState.moved) { if (dx < -50) gatesStep(1); else if (dx > 50) gatesStep(-1); gatesState.justDragged = true; setTimeout(() => { gatesState.justDragged = false; }, 0); }
+            };
+            el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+            track.addEventListener('click', e => {
+                if (gatesState.justDragged) return; const c = e.target.closest('.eg-card'); if (!c) return;
+                const i = parseInt(c.dataset.i, 10); if (i === gatesState.cur) enterGate(i); else gatesGoto(i);
+            });
+            el.addEventListener('wheel', e => {
+                e.preventDefault(); const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; if (Math.abs(d) < 8) return;
+                const now = Date.now(); if (now - gatesState.lastWheelAt < 300) return; gatesState.lastWheelAt = now; gatesStep(d > 0 ? 1 : -1);
+            }, { passive: false });
+            return el;
+        }
+        function buildGateCard(sec, i) {
+            const d = document.createElement('div'); d.className = 'eg-card'; d.dataset.i = i;
+            const isNew = !!sec.__new;
+            d.style.cssText = isNew ? '--emp-rgb:255,255,255;--emp-rgb2:120,120,140;--fr:255,255,255;--emp-font:\'Outfit\',sans-serif;' : loreCardVars(sec.id);
+            const n = isNew ? 0 : vaultData.filter(x => x.sectionId === sec.id).length;
+            const isCur = !isNew && sec.id === activeSectionId && activePage === 'vault';
+            d.innerHTML = '<div class="eg-img"></div>' + (isNew || !sec.cover ? '<div class="eg-ico"><i class="fas"></i></div>' : '') + (sec.isLegendary ? '<div class="eg-crown"><i class="fas fa-crown"></i></div>' : '') +
+                '<div class="eg-shade"></div><div class="eg-info"><div class="eg-name"></div><div class="eg-desc"></div><div class="eg-meta"></div><div class="eg-enter"></div></div><div class="eg-dim"></div>';
+            if (sec.cover) d.querySelector('.eg-img').style.backgroundImage = 'url("' + String(sec.cover).replace(/"/g, '%22') + '")';
+            const ico = d.querySelector('.eg-ico i'); if (ico) ico.className = 'fas ' + (isNew ? 'fa-plus' : wheelSafeIcon(sec.icon));
+            d.querySelector('.eg-name').textContent = isNew ? 'Forge a new Empire' : (sec.name || 'Realm');
+            d.querySelector('.eg-desc').textContent = isNew ? 'Create a realm and give it a world of its own.' : (sec.desc || '');
+            d.querySelector('.eg-meta').textContent = isNew ? '' : (n + (n === 1 ? ' artifact' : ' artifacts') + (isCur ? '  ·  you are here' : ''));
+            d.querySelector('.eg-enter').textContent = isNew ? 'CREATE' : 'ENTER';
+            if (!isNew) {
+                const eb = document.createElement('button'); eb.type = 'button'; eb.className = 'eg-edit'; eb.setAttribute('aria-label', 'Edit this empire'); eb.innerHTML = '<i class="fas fa-pen"></i>';
+                eb.addEventListener('click', ev => { ev.stopPropagation(); closeEmpireGates(true); editSectionModal(sec.id); });
+                d.appendChild(eb);
+            }
+            return d;
+        }
+
+        function placeGate(el, off) {
+            const w = gatesCardW(), a = Math.abs(off), sg = off < 0 ? -1 : 1;
+            const x = off === 0 ? 0 : sg * (w * 0.62 + (a - 1) * w * 0.34);
+            el.style.transform = 'translateX(-50%) translateX(' + x.toFixed(1) + 'px) rotateY(' + (off === 0 ? 0 : -sg * 36) + 'deg) scale(' + (1 - 0.13 * Math.min(a, 3)).toFixed(3) + ')';
+            el.style.zIndex = 10 - a; el.style.opacity = a >= 3 ? 0 : 1; el.style.pointerEvents = a > 2 ? 'none' : 'auto';
+            el.querySelector('.eg-dim').style.opacity = off === 0 ? 0 : Math.min(0.72, 0.35 + 0.15 * a);
+            el.classList.toggle('focus', off === 0); el.classList.toggle('far', a >= 2);
+        }
+        function setGatesBg(i) {
+            const el = _ge('empire-gates'); const sec = gatesState.items[i]; if (!el || !sec) return;
+            const layers = el.querySelectorAll('.eg-bg'); gatesState.flip = !gatesState.flip;
+            const on = layers[gatesState.flip ? 1 : 0], off = layers[gatesState.flip ? 0 : 1];
+            const th = sec.__new ? { accent: '#8a8a9a', accent2: '#3a3a4a', bg: '#08060a' } : getEmpireTheme(sec);
+            const [r, g, b] = hexToRgb(th.accent), [r2, g2, b2] = hexToRgb(th.accent2);
+            let bgi = 'radial-gradient(circle at 30% 25%, rgba(' + r + ',' + g + ',' + b + ',0.55), transparent 55%), radial-gradient(circle at 80% 80%, rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.45), transparent 55%), linear-gradient(160deg, ' + th.bg + ', #000)';
+            if (sec.cover && !document.documentElement.classList.contains('low-power')) bgi = 'url("' + String(sec.cover).replace(/"/g, '%22') + '"), ' + bgi;
+            on.style.backgroundImage = bgi; on.classList.add('show'); off.classList.remove('show');
+        }
+        function layoutGates() {
+            const el = _ge('empire-gates'), track = el.querySelector('.eg-track'); const N = gatesState.items.length, cur = gatesState.cur;
+            const lo = Math.max(0, cur - 3), hi = Math.min(N - 1, cur + 3);
+            gatesState.els.forEach((c, i) => { if (i < lo || i > hi) { c.remove(); gatesState.els.delete(i); } });
+            for (let i = lo; i <= hi; i++) {
+                let c = gatesState.els.get(i);
+                if (!c) { c = buildGateCard(gatesState.items[i], i); c.style.transition = 'none'; track.appendChild(c); gatesState.els.set(i, c); placeGate(c, i - cur); void c.offsetWidth; c.style.transition = ''; }
+                else placeGate(c, i - cur);
+            }
+            el.querySelector('.eg-count span').textContent = (cur + 1) + ' / ' + N;
+            const dots = el.querySelector('.eg-dots'); dots.style.display = N <= 14 ? 'flex' : 'none';
+            if (N <= 14) dots.innerHTML = gatesState.items.map((_, i) => '<i class="' + (i === cur ? 'on' : '') + '"></i>').join('');
+        }
+        function gatesGoto(i) {
+            const N = gatesState.items.length; i = Math.max(0, Math.min(N - 1, i)); if (i === gatesState.cur) return;
+            gatesState.cur = i; layoutGates(); setGatesBg(i);
+        }
+        function gatesStep(d) { gatesGoto(gatesState.cur + d); }
+        function gatesAllowed() { return !gatesState.open && wheelAllowed(); }
+        function openEmpireGates() {
+            if (!gatesAllowed()) return;
+            const el = ensureGatesEl(); el.querySelector('.eg-launch-cb').checked = localStorage.getItem('v_max_gates_launch') === '1';
+            el.querySelector('.eg-sync-cb').checked = localStorage.getItem('v_max_sync') === '1'; el.querySelector('.eg-full-cb').checked = localStorage.getItem('v_max_force_full') === '1';
+            el.querySelector('.eg-panel').classList.remove('open'); empireSyncPanelUpdate();
+            codexMark('flag', 'gates'); el.querySelector('.eg-book').classList.toggle('new', codexHasNew());
+            gatesState.items = customSections.concat([{ __new: true }]);
+            const idx = customSections.findIndex(s => s.id === activeSectionId); gatesState.cur = idx >= 0 ? idx : 0;
+            gatesState.els.forEach(c => c.remove()); gatesState.els.clear(); gatesState.open = true;
+            el.style.display = 'block'; setGatesBg(gatesState.cur); layoutGates(); void el.offsetWidth; el.classList.add('open');
+        }
+        function closeEmpireGates(instant) {
+            const el = _ge('empire-gates'); if (!el || !gatesState.open) return;
+            gatesState.open = false; el.classList.remove('open');
+            try { if (el.contains(document.activeElement)) document.activeElement.blur(); } catch (e) {} // a ticked option must not keep focus, or the W shortcut would be ignored as typing
+            if (instant) { el.style.display = 'none'; return; }
+            setTimeout(() => { if (!gatesState.open) el.style.display = 'none'; }, 320);
+        }
+        function enterGate(i) {
+            const sec = gatesState.items[i]; closeEmpireGates(true); if (!sec) return;
+            if (sec.__new) { openSectionModal(); return; }
+            if (sec.id === activeSectionId && activePage === 'vault') return;
+            switchSection(sec.id);
+        }
+        function maybeOpenGatesOnLaunch() {
+            if (localStorage.getItem('v_max_gates_launch') !== '1' || customSections.length < 2 || window.innerWidth < 768) return;
+            setTimeout(() => { try { openEmpireGates(); } catch (e) {} }, 700); // let the lock screen finish fading first
+        }
+        window.addEventListener('keydown', e => {
+            const isW = (e.key === 'w' || e.key === 'W');
+            if (gatesState.open) {
+                const tg = e.target; if (tg && tg.tagName === 'INPUT' && tg.type === 'text') { if (e.key === 'Escape') { e.preventDefault(); tg.blur(); e.stopImmediatePropagation(); } return; } // let people type in the city box
+                e.stopImmediatePropagation(); const k = e.key;
+                if (k === 'Escape' || isW) { e.preventDefault(); closeEmpireGates(); }
+                else if (k === 'ArrowRight' || k === 'd' || k === 'D') { e.preventDefault(); gatesStep(1); }
+                else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { e.preventDefault(); gatesStep(-1); }
+                else if (k === 'Home') { e.preventDefault(); gatesGoto(0); }
+                else if (k === 'End') { e.preventDefault(); gatesGoto(gatesState.items.length - 1); }
+                else if (k === 'Enter' || k === ' ') { e.preventDefault(); enterGate(gatesState.cur); }
+                return;
+            }
+            if (!isW || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+            const t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+            if (!gatesAllowed()) return;
+            e.preventDefault(); e.stopImmediatePropagation(); openEmpireGates();
+        }, true);
+
+        // ===== EMPIRE REBUILD · STEP 7: REAL-WORLD SYNC =====
+        // Opt-in (Gates > options). Time of day always works offline: dawn / day / dusk / night tint over the app.
+        // Weather needs location permission + internet: your position is rounded to ~10 km and sent to open-meteo.com
+        // (no key, no account), then rain / snow / storm / fog / cloud is drawn over the world. Never runs in the decoy
+        // vault or while locked. Particle effects only on full-effects devices; low-power gets a calm static tint.
+        const empireSync = { on: false, wx: null, kind: 'none', raf: 0, parts: [], flashT: 0, tick: 0, busy: false };
+        function empireTimeOfDay() { const h = new Date().getHours(); return h >= 5 && h < 7 ? 'dawn' : h >= 7 && h < 17 ? 'day' : h >= 17 && h < 19 ? 'dusk' : 'night'; }
+        function empireWxKind(code) {
+            if (code === 45 || code === 48) return { k: 'fog', n: 1 };
+            if (code >= 95) return { k: 'storm', n: 3 };
+            if ([51, 53, 55, 56, 57, 61, 80].indexOf(code) !== -1) return { k: 'rain', n: 1 };
+            if ([63, 66, 81].indexOf(code) !== -1) return { k: 'rain', n: 2 };
+            if ([65, 67, 82].indexOf(code) !== -1) return { k: 'rain', n: 3 };
+            if ([71, 77, 85].indexOf(code) !== -1) return { k: 'snow', n: 1 };
+            if (code === 73) return { k: 'snow', n: 2 };
+            if (code === 75 || code === 86) return { k: 'snow', n: 3 };
+            if (code === 2 || code === 3) return { k: 'cloud', n: 1 };
+            return { k: 'clear', n: 0 };
+        }
+        function ensureAmbientEl() {
+            let el = _ge('empire-ambient'); if (el) return el;
+            el = document.createElement('div'); el.id = 'empire-ambient';
+            el.innerHTML = '<div class="ea-tint"></div><div class="ea-fog"></div><canvas></canvas><div class="ea-flash"></div>';
+            document.body.appendChild(el); return el;
+        }
+        const WX_LABEL = { clear: 'Clear sky', cloud: 'Cloudy', fog: 'Fog', rain: 'Rain', storm: 'Thunderstorm', snow: 'Snow' };
+        const WX_ERR = { 'geo-denied': 'Location is blocked. Type your city below instead.', 'no-geo': 'This browser has no location service. Type your city below.', offline: 'Could not reach the weather service. Check your internet.', service: 'The weather service returned nothing. Try again later.' };
+        function empireWxLabel(wx) { const w = empireWxKind(wx.code); return WX_LABEL[w.k] + (typeof wx.temp === 'number' ? ', ' + Math.round(wx.temp) + '\u00B0C' : '') + (wx.src && wx.src !== 'GPS' ? ' (' + wx.src + ')' : ''); }
+        function empireErrText() { return WX_ERR[empireSync.err] || 'Weather is unavailable right now. Using time of day only.'; }
+        function empireCityLoad() { try { const c = JSON.parse(localStorage.getItem('v_max_sync_city') || 'null'); return c && typeof c.lat === 'number' && typeof c.lon === 'number' ? c : null; } catch (e) { return null; } }
+        function empireSyncStatusText() {
+            if (!empireSync.on) return 'Off.';
+            const tod = { dawn: 'Dawn', day: 'Daytime', dusk: 'Dusk', night: 'Night' }[empireTimeOfDay()];
+            if (empireSync.wx) return tod + ' \u00B7 ' + empireWxLabel(empireSync.wx) + (empireSync.wx.src === 'GPS' ? ' \u00B7 from your location' : '');
+            return tod + ' \u00B7 no weather yet. ' + (empireSync.err ? empireErrText() : 'Looking it up...');
+        }
+        function empireSyncPanelUpdate() {
+            const el = _ge('empire-gates'); if (!el) return;
+            const st = el.querySelector('.eg-sync-status'); if (st) st.textContent = empireSyncStatusText();
+            const ci = el.querySelector('.eg-city-in'); if (ci && document.activeElement !== ci) ci.value = (empireCityLoad() || {}).name || '';
+        }
+        function ambientStopParticles() {
+            if (empireSync.raf) cancelAnimationFrame(empireSync.raf); empireSync.raf = 0; clearTimeout(empireSync.flashT); empireSync.parts = [];
+            if (empireSync.fit) { window.removeEventListener('resize', empireSync.fit); empireSync.fit = null; }
+            const el = _ge('empire-ambient'); if (el) { const cv = el.querySelector('canvas'); const c = cv.getContext('2d'); c && c.clearRect(0, 0, cv.width, cv.height); }
+        }
+        // lite = low-power phones: a few drops, half-resolution canvas, ~30 fps. Full = many particles at full rate.
+        function ambientStartParticles(kind, n, lite) {
+            const el = ensureAmbientEl(), cv = el.querySelector('canvas'), ctx = cv.getContext('2d'); if (!ctx) return;
+            const k = lite ? 0.5 : 1;
+            const fit = () => { cv.width = Math.round(window.innerWidth * k); cv.height = Math.round(window.innerHeight * k); }; fit(); empireSync.fit = fit; window.addEventListener('resize', fit);
+            const W = () => cv.width, H = () => cv.height; const snow = kind === 'snow';
+            const count = lite ? (snow ? 14 + n * 6 : 16 + n * 6) : (snow ? 40 + n * 25 : (kind === 'storm' ? 140 : 45 + n * 35));
+            empireSync.parts = Array.from({ length: count }, () => ({ x: Math.random() * W(), y: Math.random() * H(), v: (snow ? 0.6 + Math.random() * 1.2 : 11 + Math.random() * 9) * k, l: (10 + Math.random() * 14) * k, r: 1 + Math.random() * 2.2, ph: Math.random() * 6.28 }));
+            let last = 0;
+            const loop = ts => {
+                empireSync.raf = requestAnimationFrame(loop); if (document.hidden) return; if (lite && ts - last < 33) return; last = ts;
+                ctx.clearRect(0, 0, W(), H());
+                if (snow) { ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); } else { ctx.strokeStyle = lite ? 'rgba(200,218,245,0.5)' : 'rgba(190,210,240,0.32)'; ctx.lineWidth = 1; ctx.beginPath(); }
+                for (const p of empireSync.parts) {
+                    p.y += p.v;
+                    if (snow) { p.ph += 0.02; p.x += Math.sin(p.ph) * 0.5; ctx.moveTo(p.x + p.r, p.y); ctx.arc(p.x, p.y, p.r, 0, 6.283); }
+                    else { p.x -= 2 * k; ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - 2 * k, p.y + p.l); }
+                    if (p.y > H()) { p.y = -20; p.x = Math.random() * W(); }
+                }
+                snow ? ctx.fill() : ctx.stroke();
+            };
+            empireSync.raf = requestAnimationFrame(loop);
+            if (kind === 'storm') {
+                const flash = () => { const f = el.querySelector('.ea-flash'); try { f.animate([{ opacity: 0 }, { opacity: 0.35 }, { opacity: 0 }, { opacity: 0.2 }, { opacity: 0 }], { duration: 480 }); } catch (e) {} empireSync.flashT = setTimeout(flash, 9000 + Math.random() * 13000); };
+                empireSync.flashT = setTimeout(flash, 4000 + Math.random() * 6000);
+            }
+        }
+        function empireApplyAmbient() {
+            if (!empireSync.on) return; const el = ensureAmbientEl(); el.classList.add('on');
+            const tod = empireTimeOfDay(); const w = empireSync.wx ? empireWxKind(empireSync.wx.code) : { k: 'clear', n: 0 };
+            const T = {
+                dawn: 'linear-gradient(to bottom, rgba(255,140,110,0.14), rgba(255,200,120,0.05) 40%, transparent 70%)',
+                day: 'radial-gradient(circle at 85% -10%, rgba(255,230,160,0.10), transparent 50%)',
+                dusk: 'linear-gradient(to bottom, rgba(255,110,60,0.14), rgba(140,60,160,0.10) 50%, transparent 85%)',
+                night: 'linear-gradient(to bottom, rgba(20,40,110,0.22), rgba(10,15,50,0.14))'
+            };
+            let veil = ''; if (w.k === 'cloud') veil = ', linear-gradient(rgba(120,130,150,0.08), rgba(120,130,150,0.08))'; else if (w.k === 'rain' || w.k === 'storm') veil = ', linear-gradient(rgba(40,60,90,0.13), rgba(40,60,90,0.13))'; else if (w.k === 'snow') veil = ', linear-gradient(rgba(200,220,255,0.06), rgba(200,220,255,0.06))';
+            el.querySelector('.ea-tint').style.background = T[tod] + veil;
+            el.querySelector('.ea-fog').style.opacity = w.k === 'fog' ? 0.8 : (w.k === 'cloud' ? 0.25 : 0);
+            document.body.dataset.tod = tod; document.body.dataset.wx = w.k;
+            const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+            const lite = document.documentElement.classList.contains('low-power');
+            const wantParticles = (w.k === 'rain' || w.k === 'storm' || w.k === 'snow') && !reduced;
+            const sig = wantParticles ? w.k + w.n + (lite ? 'L' : '') : '';
+            if (sig !== empireSync.kind) { ambientStopParticles(); empireSync.kind = sig; if (wantParticles) ambientStartParticles(w.k, w.n, lite); }
+        }
+        async function empireFetchWeather() {
+            let lat, lon, src; const city = empireCityLoad();
+            if (city) { lat = city.lat; lon = city.lon; src = city.name; }
+            else {
+                const pos = await new Promise(res => {
+                    if (!navigator.geolocation) { empireSync.err = 'no-geo'; return res(null); }
+                    navigator.geolocation.getCurrentPosition(pp => res(pp), () => { empireSync.err = 'geo-denied'; res(null); }, { timeout: 8000, maximumAge: 1800000, enableHighAccuracy: false });
+                });
+                if (!pos) return null;
+                lat = Math.round(pos.coords.latitude * 10) / 10; lon = Math.round(pos.coords.longitude * 10) / 10; src = 'GPS'; // ~10 km
+            }
+            try {
+                const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=weather_code,is_day,temperature_2m&timezone=auto');
+                const j = await r.json(); const c = j && j.current; if (!c) { empireSync.err = 'service'; return null; }
+                return { code: c.weather_code, isDay: c.is_day, temp: c.temperature_2m, t: Date.now(), src: src };
+            } catch (e) { empireSync.err = 'offline'; return null; }
+        }
+        async function empireSyncRefresh(announce) {
+            if (!empireSync.on || empireSync.busy) return; empireSync.busy = true; empireSync.err = '';
+            try {
+                let wx = null; try { wx = JSON.parse(localStorage.getItem('v_max_sync_wx') || 'null'); } catch (e) {}
+                if (!wx || Date.now() - wx.t > 30 * 60 * 1000) {
+                    const fresh = await empireFetchWeather();
+                    if (fresh) { wx = fresh; try { localStorage.setItem('v_max_sync_wx', JSON.stringify(fresh)); } catch (e) {} if (announce) showToast('Weather: ' + escHtml(empireWxLabel(fresh))); }
+                    else if (announce) showToast(empireErrText(), true);
+                }
+                empireSync.wx = wx;
+            } finally { empireSync.busy = false; }
+            empireApplyAmbient(); empireSyncPanelUpdate();
+        }
+        async function empireSetCity(q) {
+            q = (q || '').trim();
+            if (!q) { try { localStorage.removeItem('v_max_sync_city'); localStorage.removeItem('v_max_sync_wx'); } catch (e) {} empireSync.wx = null; empireSyncPanelUpdate(); if (empireSync.on) empireSyncRefresh(true); return; }
+            try {
+                const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=1&language=en&format=json'); const j = await r.json(); const g = j && j.results && j.results[0];
+                if (!g) return showToast('City not found. Try another spelling.', true);
+                localStorage.setItem('v_max_sync_city', JSON.stringify({ name: g.name + (g.country ? ', ' + g.country : ''), lat: Math.round(g.latitude * 10) / 10, lon: Math.round(g.longitude * 10) / 10 })); localStorage.removeItem('v_max_sync_wx');
+            } catch (e) { return showToast('Could not reach the city search. Check your internet.', true); }
+            empireSync.wx = null; empireSyncPanelUpdate();
+            if (empireSync.on) empireSyncRefresh(true); else showToast('City saved. Now tick Real-world sync.');
+        }
+        function empireSyncStart(announce) {
+            return; // Real-world sync (time of day + weather) is switched off
+            if (localStorage.getItem('v_max_sync') !== '1' || activeSecurityMode === 'locked' || activeSecurityMode === 'fake' || empireSync.on) return;
+            empireSync.on = true; empireApplyAmbient(); empireSyncPanelUpdate(); empireSyncRefresh(!!announce);
+            empireSync.tick = setInterval(() => { empireApplyAmbient(); empireSyncRefresh(false); }, 60000);
+        }
+        function empireSyncStop() {
+            empireSync.on = false; clearInterval(empireSync.tick); ambientStopParticles(); empireSync.kind = '';
+            const el = _ge('empire-ambient'); if (el) el.classList.remove('on'); delete document.body.dataset.tod; delete document.body.dataset.wx; empireSyncPanelUpdate();
+        }
+        function empireSyncSet(on) {
+            try { localStorage.setItem('v_max_sync', on ? '1' : '0'); } catch (e) {}
+            if (!on) return empireSyncStop();
+            if (activeSecurityMode === 'fake') return showToast('Not available here.', true);
+            empireSyncStart(true);
+        }
+
+        // ===== EMPIRE REBUILD · STEP 8a: THE FOUNDING PACT =====
+        // Creating a new empire is no longer a plain "Save": a treaty appears, and you HOLD the seal until the wax is
+        // pressed. Releasing early cancels the hold. "Not yet" / Esc goes back to the form. Not used in the decoy vault.
+        const pactState = { open: false };
+        function empirePactSign(draft, onDone) {
+            if (activeSecurityMode === 'fake' || typeof Element === 'undefined' || !Element.prototype.animate) return onDone();
+            let el = _ge('empire-pact');
+            if (!el) {
+                el = document.createElement('div'); el.id = 'empire-pact';
+                el.innerHTML = '<div class="pc-sheet"><div class="pc-crest"><i class="fas"></i></div><div class="pc-title">THE FOUNDING PACT</div><h2 class="pc-name"></h2><p class="pc-text"></p><p class="pc-desc"></p><p class="pc-text pc-legend"></p>' +
+                    '<div class="pc-sign"><div class="pc-ring"></div><button type="button" class="pc-seal" aria-label="Hold to seal the pact"><i class="fas"></i><span class="pc-hint">HOLD TO SEAL</span></button><div class="pc-wax"><i class="fas"></i></div></div>' +
+                    '<div class="pc-done"></div><button type="button" class="pc-cancel">Not yet</button></div>';
+                document.body.appendChild(el);
+            }
+            const th = getEmpireTheme({ name: draft.name, theme: draft.theme }); const a = hexToRgb(th.accent), b2 = hexToRgb(th.accent2);
+            el.style.cssText = '--emp-rgb:' + a.join(',') + ';--emp-rgb2:' + b2.join(',') + ';--fr:' + (draft.isLegendary ? '255,215,0' : a.join(',')) + ';--emp-font:' + EMPIRE_FONTS[th.fontKey] + ';';
+            const ic = wheelSafeIcon(draft.icon);
+            el.querySelector('.pc-crest i').className = 'fas ' + ic; el.querySelector('.pc-seal > i').className = 'fas ' + ic; el.querySelector('.pc-wax i').className = 'fas ' + ic;
+            el.querySelector('.pc-name').textContent = draft.name;
+            el.querySelector('.pc-text').textContent = 'By this seal, the keeper of this vault founds the empire of ' + draft.name + ', and swears to fill its halls with worthy artifacts.';
+            const dEl = el.querySelector('.pc-desc'); dEl.textContent = draft.desc ? '\u201C' + draft.desc + '\u201D' : ''; dEl.style.display = draft.desc ? '' : 'none';
+            const lg = el.querySelector('.pc-legend'); lg.textContent = draft.isLegendary ? 'Its banner is gold: a Legendary empire.' : ''; lg.style.display = draft.isLegendary ? '' : 'none';
+            const seal = el.querySelector('.pc-seal'), ring = el.querySelector('.pc-ring'), wax = el.querySelector('.pc-wax'), done = el.querySelector('.pc-done'), sheet = el.querySelector('.pc-sheet');
+            el.querySelector('.pc-cancel').style.visibility = ''; seal.style.display = ''; wax.style.display = 'none'; done.style.opacity = 0; done.textContent = ''; ring.style.setProperty('--p', 0); ring.style.display = '';
+            const holdMs = document.documentElement.classList.contains('low-power') ? 700 : 1100;
+            let down = false, startT = 0, raf = 0, sealed = false, finished = false;
+            const cleanup = () => { cancelAnimationFrame(raf); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end); window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKeyUp, true); pactState.open = false; };
+            const close = (instant) => { cleanup(); el.classList.remove('open'); if (instant) el.style.display = 'none'; else setTimeout(() => { if (!pactState.open) el.style.display = 'none'; }, 260); };
+            const begin = () => { if (sealed || down) return; down = true; startT = performance.now(); const tick = () => { if (!down || sealed) return; const p = Math.min(1, (performance.now() - startT) / holdMs); ring.style.setProperty('--p', p); if (p >= 1) return stamp(); raf = requestAnimationFrame(tick); }; tick(); };
+            const end = () => { if (sealed) return; down = false; cancelAnimationFrame(raf); ring.style.setProperty('--p', 0); };
+            const stamp = () => {
+                if (sealed) return; sealed = true; down = false; cancelAnimationFrame(raf);
+                seal.style.display = 'none'; ring.style.display = 'none'; wax.style.display = 'flex'; el.querySelector('.pc-cancel').style.visibility = 'hidden';
+                const full = !document.documentElement.classList.contains('low-power');
+                try { wax.animate([{ transform: 'scale(1.9) rotate(-14deg)', opacity: 0 }, { transform: 'scale(0.9) rotate(2deg)', opacity: 1, offset: 0.55 }, { transform: 'scale(1) rotate(0deg)', opacity: 1 }], { duration: full ? 520 : 200, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }); } catch (e) {}
+                if (full) { try { sheet.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(4px)', offset: 0.5 }, { transform: 'translateY(0)' }], { duration: 220, delay: 280 }); } catch (e) {} }
+                done.textContent = 'The pact is sealed.'; try { done.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: full ? 420 : 100, fill: 'forwards' }); } catch (e) { done.style.opacity = 1; }
+                setTimeout(() => { if (finished) return; finished = true; close(true); onDone(); }, full ? 1700 : 700);
+            };
+            const onKey = e => {
+                e.stopImmediatePropagation();
+                if (e.key === 'Escape' && !sealed) { e.preventDefault(); close(); }
+                else if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !sealed) { e.preventDefault(); begin(); }
+            };
+            const onKeyUp = e => { if (e.key === ' ' || e.key === 'Enter') end(); };
+            seal.onpointerdown = e => { e.preventDefault(); begin(); };
+            window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
+            window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKeyUp, true);
+            el.querySelector('.pc-cancel').onclick = () => { if (!sealed) close(); };
+            pactState.open = true; el.style.display = 'block'; el.scrollTop = 0; void el.offsetWidth; el.classList.add('open');
+        }
+
+        // ===== EMPIRE REBUILD · STEP 8b: THE CODEX =====
+        // Hidden lore book (press C, or the book button in the Gates). Chronicle pages of each empire open as you visit it
+        // and as it grows; "Secrets" are discoveries you make by exploring. Progress is stored on this device only.
+        const codexState = { open: false };
+        const CODEX_KEY = 'v_max_codex';
+        const CODEX_TIERS = [{ n: 0, name: 'Overview' }, { n: 5, name: 'Rarity Ledger' }, { n: 15, name: "Chronicler's Tags" }, { n: 30, name: 'Link Atlas' }];
+        const CODEX_SECRETS = [
+            { id: 'first', name: 'First Steps', hint: 'Step through a portal into any empire.', lore: 'The first gate always opens for those who knock.', test: st => Object.keys(st.visited).length >= 1 },
+            { id: 'gatekeeper', name: 'Gatekeeper', hint: 'Open the Gates and look around.', lore: 'Every empire has a door. You found the hall of doors.', test: st => !!st.flags.gates },
+            { id: 'fate', name: 'Wheel of Fate', hint: 'Let the Wheel choose your destination.', lore: 'Hold, aim, release. Fate does the rest.', test: st => !!st.flags.wheel },
+            { id: 'founder', name: 'Founder', hint: 'Seal the founding pact of a new empire.', lore: 'Wax, ink and a promise: a new empire is born.', test: st => !!st.flags.founder },
+            { id: 'legend', name: 'Legend', hint: 'Own a Legendary empire.', lore: 'Gold banners fly over your halls.', test: () => customSections.some(s => s.isLegendary) },
+            { id: 'cartographer', name: 'Cartographer', hint: 'Visit every one of your empires.', lore: 'No border on your map is blank anymore.', test: st => customSections.length > 1 && customSections.every(s => st.visited[s.id]) },
+            { id: 'nightowl', name: 'Night Owl', hint: 'Enter an empire after dark.', lore: 'The best chronicles are written by candlelight.', test: st => !!st.flags.nightvisit },
+            { id: 'storm', name: 'Storm Chaser', hint: 'Enter an empire while it rains outside (needs Real-world sync).', lore: 'Thunder outside, empire inside.', test: st => !!st.flags.stormvisit },
+            { id: 'archivist', name: 'Archivist', hint: 'Hold 50 artifacts across your empires.', lore: 'Your archive outgrew its shelves.', test: () => vaultData.length >= 50 },
+            { id: 'linkmaster', name: 'Link Master', hint: 'Keep 20 links across your artifacts.', lore: 'A web of paths, all of them yours.', test: () => vaultData.reduce((n, i) => n + itemLinkList(i).length, 0) >= 20 }
+        ];
+        function codexOff() { return activeSecurityMode === 'fake' || activeSecurityMode === 'locked'; }
+        function codexLoad() { const d = { visited: {}, flags: {}, unlocked: {}, seen: {} }; try { return Object.assign(d, JSON.parse(localStorage.getItem(CODEX_KEY) || '{}')); } catch (e) { return d; } }
+        function codexSave(st) { try { localStorage.setItem(CODEX_KEY, JSON.stringify(st)); } catch (e) {} }
+        function codexUnlockedIds(st) {
+            const ids = []; CODEX_SECRETS.forEach(x => { if (x.test(st)) ids.push('s:' + x.id); });
+            customSections.forEach(sec => { if (st.visited[sec.id]) { const n = vaultData.filter(i => i.sectionId === sec.id).length; CODEX_TIERS.forEach((t, k) => { if (n >= t.n) ids.push('c:' + sec.id + ':' + k); }); } });
+            return ids;
+        }
+        function codexEntryName(id) {
+            const p = id.split(':'); if (p[0] === 's') { const x = CODEX_SECRETS.find(y => y.id === p[1]); return x ? x.name : id; }
+            const sec = customSections.find(s => s.id === p[1]); return (sec ? sec.name : 'Empire') + ' · ' + CODEX_TIERS[+p[2]].name;
+        }
+        function codexEvaluate() {
+            if (codexOff()) return; const st = codexLoad(); const fresh = codexUnlockedIds(st).filter(id => !st.unlocked[id]); if (!fresh.length) return;
+            fresh.forEach(id => { st.unlocked[id] = Date.now(); }); codexSave(st);
+            showToast('<i class="fas fa-book-open"></i> Codex: ' + (fresh.length === 1 ? 'new entry, ' + escHtml(codexEntryName(fresh[0])) : fresh.length + ' new entries'));
+            const b = document.querySelector('#empire-gates .eg-book'); if (b) b.classList.add('new');
+        }
+        function codexMark(kind, key) {
+            if (codexOff()) return; const st = codexLoad();
+            if (kind === 'visit') {
+                st.visited[key] = Date.now(); const h = new Date().getHours();
+                if (h >= 21 || h < 5) st.flags.nightvisit = 1; if (document.body.dataset.wx === 'rain' || document.body.dataset.wx === 'storm') st.flags.stormvisit = 1;
+            } else st.flags[key] = Date.now();
+            codexSave(st); codexEvaluate();
+        }
+        function codexMerge(imp) { // union of two devices' progress: keep every discovery, keep the earlier timestamp
+            if (codexOff() || !imp || typeof imp !== 'object') return; const st = codexLoad();
+            ['visited', 'flags', 'unlocked', 'seen'].forEach(k => {
+                const src = imp[k]; if (!src || typeof src !== 'object') return;
+                Object.keys(src).forEach(id => { if (id === '__proto__' || id === 'constructor') return; const v = Number(src[id]) || 1; st[k][id] = st[k][id] ? Math.min(st[k][id], v) : v; });
+            });
+            codexSave(st); codexEvaluate();
+        }
+        function codexHasNew() { const st = codexLoad(); return Object.keys(st.unlocked).some(id => !st.seen[id]); }
+        function codexStats(sec) {
+            const items = vaultData.filter(i => i.sectionId === sec.id); const rar = {}, tags = {}; let links = 0, top = null, topN = 0, latest = 0, fav = 0;
+            items.forEach(i => {
+                const r = (i.rarity || '').trim() || 'Unranked'; rar[r] = (rar[r] || 0) + 1; (i.categories || []).forEach(c => { tags[c] = (tags[c] || 0) + 1; });
+                const k = itemLinkList(i).length; links += k; if (k > topN) { topN = k; top = i; } latest = Math.max(latest, i.timestamp || i.id || 0); if (i.isFavorite) fav++;
+            });
+            return { n: items.length, fav, latest, rar, tags, links, top, topN };
+        }
+        function codexTierBody(k, S) {
+            if (k === 0) return S.n + ' artifacts · ' + S.fav + ' favourites' + (S.latest ? '<br><span style="opacity:.6">Latest addition: ' + escHtml(new Date(S.latest).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })) + '</span>' : '');
+            if (k === 1) { const e = Object.entries(S.rar).sort((a, b) => b[1] - a[1]).slice(0, 5); return e.map(([r, c]) => '<div class="cx-b"><span>' + escHtml(r) + '</span><em><i style="width:' + Math.round(c / S.n * 100) + '%"></i></em><b>' + c + '</b></div>').join(''); }
+            if (k === 2) { const e = Object.entries(S.tags).sort((a, b) => b[1] - a[1]).slice(0, 6); return e.length ? e.map(([t, c]) => '<span class="cx-chip">' + escHtml(t) + ' · ' + c + '</span>').join('') : '<span style="opacity:.6">No tags yet.</span>'; }
+            return S.links + ' links across this empire' + (S.top ? '<br><span style="opacity:.6">Most linked: ' + escHtml(S.top.title || 'Nameless') + ' (' + S.topN + ')</span>' : '');
+        }
+        function renderCodex() {
+            const el = _ge('empire-codex'), st = codexLoad(); const total = CODEX_SECRETS.length + customSections.length * CODEX_TIERS.length; const got = Object.keys(st.unlocked).filter(id => codexUnlockedIds(st).indexOf(id) !== -1).length;
+            const cur = customSections.find(s => s.id === activeSectionId) || customSections[0]; el.style.cssText = cur ? loreCardVars(cur.id) : '';
+            let h = '<div class="cx-wrap"><div class="cx-top"><div class="cx-title">THE CODEX</div><button type="button" class="cx-close" aria-label="Close">&#10005;</button></div><div class="cx-prog">' + got + ' / ' + total + ' ENTRIES DISCOVERED</div><div class="cx-bar0"><i style="width:' + Math.round(got / total * 100) + '%"></i></div>';
+            h += '<div class="cx-sec">Chronicles</div><div class="cx-grid">';
+            customSections.forEach(sec => {
+                const head = '<div class="cx-head"><i class="fas ' + wheelSafeIcon(sec.icon) + '"></i><div><div class="cx-name">' + escHtml(sec.name) + '</div><div class="cx-sub">';
+                if (!st.visited[sec.id]) { h += '<div class="cx-card locked" style="' + loreCardVars(sec.id) + '">' + head + 'Undiscovered</div></div><i class="fas fa-lock cx-lock"></i></div><p class="cx-hint">Enter this empire to open its chronicle.</p></div>'; return; }
+                const S = codexStats(sec); h += '<div class="cx-card" style="' + loreCardVars(sec.id) + '">' + head + S.n + ' artifacts</div></div></div>';
+                CODEX_TIERS.forEach((t, k) => {
+                    const id = 'c:' + sec.id + ':' + k;
+                    h += S.n >= t.n ? '<div class="cx-page"><div class="cx-pt">' + t.name + (st.unlocked[id] && !st.seen[id] && k > 0 ? '<em class="cx-new">NEW</em>' : '') + '</div>' + codexTierBody(k, S) + '</div>' : '<div class="cx-page off"><div class="cx-pt"><i class="fas fa-lock"></i> ' + t.name + '</div><div class="cx-need">Needs ' + t.n + ' artifacts</div></div>';
+                });
+                h += '</div>';
+            });
+            h += '</div><div class="cx-sec">Secrets</div><div class="cx-list">';
+            CODEX_SECRETS.forEach(x => {
+                const id = 's:' + x.id, ok = !!st.unlocked[id];
+                h += ok ? '<div class="cx-row"><i class="fas fa-check"></i><div><b>' + escHtml(x.name) + (!st.seen[id] ? '<em class="cx-new">NEW</em>' : '') + '</b><div>' + escHtml(x.lore) + '</div></div></div>' : '<div class="cx-row off"><i class="fas fa-question"></i><div><b>???</b><div>' + escHtml(x.hint) + '</div></div></div>';
+            });
+            el.innerHTML = h + '</div></div>';
+            el.querySelector('.cx-close').addEventListener('click', () => closeEmpireCodex());
+        }
+        function codexAllowed() { return wheelAllowed(); }
+        function openEmpireCodex() {
+            if (!codexAllowed()) return; codexEvaluate();
+            let el = _ge('empire-codex'); if (!el) { el = document.createElement('div'); el.id = 'empire-codex'; document.body.appendChild(el); }
+            renderCodex(); el.scrollTop = 0; el.style.display = 'block'; void el.offsetWidth; el.classList.add('open'); codexState.open = true;
+            const st = codexLoad(); st.seen = Object.assign({}, st.unlocked); codexSave(st); // everything shown has now been seen
+        }
+        function closeEmpireCodex() {
+            const el = _ge('empire-codex'); if (!el || !codexState.open) return; codexState.open = false; el.classList.remove('open'); setTimeout(() => { if (!codexState.open) el.style.display = 'none'; }, 260);
+        }
+        window.addEventListener('keydown', e => {
+            const isC = (e.key === 'c' || e.key === 'C');
+            if (codexState.open) { e.stopImmediatePropagation(); if (e.key === 'Escape' || isC) { e.preventDefault(); closeEmpireCodex(); } return; }
+            if (!isC || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+            const t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+            if (!codexAllowed()) return; e.preventDefault(); e.stopImmediatePropagation(); openEmpireCodex();
+        }, true);
+
         function switchSection(secId) {
+            const sec = customSections.find(s => s.id === secId);
+            const skipPortal = !sec || portalBusy || (secId === activeSectionId && activePage === 'vault') || activeSecurityMode === 'fake' || !empirePortalSupported();
+            if (skipPortal) return switchSectionCore(secId);
+            playEmpirePortal(sec, () => switchSectionCore(secId));
+        }
+        function switchSectionCore(secId) {
+            try { closeLinkPop(); } catch (e) {}
+            try { codexMark('visit', secId); } catch (e) {}
             if(isGlobalSearch) toggleGlobalSearch(); 
             activeSectionId = secId; 
             localStorage.setItem('v_max_active_sec', secId); 
@@ -3451,6 +4688,7 @@
             document.getElementById('edit-sec-id').value = ""; 
             document.getElementById('sec-delete-btn').classList.add('hidden'); 
             selectIcon('fa-layer-group'); 
+            loadSecThemeIntoModal(null);
             document.getElementById('section-modal').classList.remove('hidden'); 
         }
 
@@ -3465,6 +4703,7 @@
             document.getElementById('edit-sec-id').value = id; 
             if(customSections.length > 1) document.getElementById('sec-delete-btn').classList.remove('hidden'); 
             selectIcon(sec.icon); 
+            loadSecThemeIntoModal(sec);
             document.getElementById('section-modal').classList.remove('hidden'); 
         }
 
@@ -3495,6 +4734,9 @@
                 ['Alt + 6', 'Jump to Achievement Hall'],
                 ['Alt + 7', 'Jump to Mood Boards'],
                 ['Alt + 8', 'Open Monthly Recap'],
+                ['Hold Q', 'Empire Wheel: aim, release to enter'],
+                ['W', 'Gates: browse every Empire as cinematic cards'],
+                ['C', 'Codex: your discoveries and empire chronicles'],
                 ['?', 'Show this cheat-sheet'],
                 ['Esc', 'Close whatever is open'],
             ]},
@@ -3544,20 +4786,23 @@
             const isLegendary = document.getElementById('sec-legendary-checkbox').checked;
             let coverData = document.getElementById('sec-cover-preview').src;
             if(coverData.includes('svg+xml')) coverData = null; // no custom cover uploaded
+            const themeData = secThemeDraft();
             
             const id = document.getElementById('edit-sec-id').value;
             if(id) { 
                 const sec = customSections.find(s => s.id === id); 
-                if(sec) { sec.name = name; sec.icon = selectedIconForPicker; sec.desc = desc; sec.isLegendary = isLegendary; sec.cover = coverData; } 
+                if(sec) { sec.name = name; sec.icon = selectedIconForPicker; sec.desc = desc; sec.isLegendary = isLegendary; sec.cover = coverData; sec.theme = themeData; } 
                 showToast("Realm updated beautifully!"); 
                 logActivity("Updated Realm", name);
             } else { 
-                const newId = 'sec_' + Date.now(); 
-                customSections.push({ id: newId, name: name, icon: selectedIconForPicker, desc: desc, isLegendary: isLegendary, cover: coverData }); 
-                activeSectionId = newId; 
-                localStorage.setItem('v_max_active_sec', newId); 
-                showToast("New Realm created!"); 
-                logActivity("Created Realm", name);
+                const newId = 'sec_' + Date.now();
+                const draft = { id: newId, name: name, icon: selectedIconForPicker, desc: desc, isLegendary: isLegendary, cover: coverData, theme: themeData };
+                const finishCreate = () => {
+                    customSections.push(draft); localStorage.setItem('v_max_active_sec', newId); // activeSectionId is changed by the switch itself, so the portal plays
+                    showToast("New Realm created!"); logActivity("Created Realm", name);
+                    saveSectionsConfig(); closeSectionModal(); switchSection(newId); codexMark('flag', 'founder');
+                };
+                return empirePactSign(draft, finishCreate); // founding an empire = sealing a pact (see Step 8)
             }
             saveSectionsConfig(); closeSectionModal(); switchSection(activeSectionId);
         }
@@ -3838,6 +5083,106 @@
         let gridObserver = null;
         const RENDER_BATCH_SIZE = 24;
 
+
+        // ===== EMPIRE REBUILD · STEP 4: LORE CARDS =====
+        // Each vault card carries its own realm's colour/font variables (so the global search, which mixes realms,
+        // still shows every card in its own empire's look), a framed "lore plate" skin (CSS above) and a pointer-driven
+        // tilt + light sheen on desktop. Touch and low-power devices skip the tilt entirely.
+        const loreVarsMemo = {};
+        function loreCardVars(sectionId) {
+            const sec = customSections.find(s => s.id === sectionId); if (!sec) return '';
+            const key = sec.id + '|' + sec.name + '|' + JSON.stringify(sec.theme || null) + '|' + (sec.isLegendary ? 1 : 0);
+            if (loreVarsMemo[key]) return loreVarsMemo[key];
+            const th = getEmpireTheme(sec); const a = hexToRgb(th.accent), b = hexToRgb(th.accent2); const fr = sec.isLegendary ? [255, 215, 0] : a;
+            return (loreVarsMemo[key] = '--emp-rgb:' + a.join(',') + ';--emp-rgb2:' + b.join(',') + ';--fr:' + fr.join(',') + ';--emp-font:' + EMPIRE_FONTS[th.fontKey] + ';');
+        }
+        (function initLoreCards() {
+            let card = null, raf = 0, lastEv = null;
+            const reset = c => { c.style.setProperty('--rx', '0deg'); c.style.setProperty('--ry', '0deg'); c.style.setProperty('--mx', '50%'); c.style.setProperty('--my', '30%'); };
+            document.addEventListener('pointermove', e => {
+                return; // hover tilt switched off
+                const c = e.target.closest && e.target.closest('.lore-card');
+                if (!c) { if (card) { reset(card); card = null; } return; }
+                if (c !== card) { if (card) reset(card); card = c; }
+                lastEv = e;
+                if (!raf) raf = requestAnimationFrame(() => {
+                    raf = 0; if (!card || !lastEv) return;
+                    const r = card.getBoundingClientRect(); const px = (lastEv.clientX - r.left) / r.width, py = (lastEv.clientY - r.top) / r.height;
+                    card.style.setProperty('--rx', ((0.5 - py) * 14).toFixed(2) + 'deg'); card.style.setProperty('--ry', ((px - 0.5) * 14).toFixed(2) + 'deg');
+                    card.style.setProperty('--mx', (px * 100).toFixed(1) + '%'); card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
+                });
+            }, { passive: true });
+            document.addEventListener('pointerout', e => { if (card && !card.contains(e.relatedTarget)) { reset(card); card = null; } });
+            // the entrance animation keeps its last frame (fill: both) which would pin transform; drop it once finished so hover/tilt can work
+            document.addEventListener('animationend', e => {
+                const t = e.target; if (e.animationName === 'cardEnterUp' && t.classList && t.classList.contains('lore-card')) { t.classList.remove('card-enter'); t.style.animationDelay = ''; }
+            });
+        })();
+
+        // ===== EMPIRE REBUILD · CARD LINKS =====
+        // The card only shows a "N Links" pill. Tapping it opens a popover (bottom sheet on phones) with the card's links.
+        // The profile link (bioLink) is NOT one of them: it keeps its own big UNWRAP ME button on the card.
+        function itemLinkList(item) {
+            const out = [];
+            (item.urls || []).forEach(u => {
+                const url = String((typeof u === 'string' ? u : (u && u.url)) || '').trim(); if (!url) return;
+                if (/^[a-z][a-z0-9+.\-]*:/i.test(url) && !/^(https?:\/\/|mailto:|tel:)/i.test(url)) return; // javascript:, data: ... are never shown or counted
+                out.push({ url: url, label: (typeof u === 'string' ? '' : (u.label || '')) || getDomainText(url) });
+            });
+            return out;
+        }
+        function safeLinkHref(u) {
+            if (/^(https?:\/\/|mailto:|tel:)/i.test(u)) return u;
+            if (/^[a-z][a-z0-9+.\-]*:/i.test(u)) return '#';   // javascript:, data:, ... never navigable
+            return 'https://' + u.replace(/^\/+/, '');
+        }
+        const linkPopState = { open: false, id: null, btn: null };
+        function closeLinkPop() {
+            const pop = _ge('link-pop'); if (!pop || !linkPopState.open) return;
+            linkPopState.open = false; pop.classList.remove('open'); _ge('link-pop-bg').classList.remove('open');
+            if (linkPopState.btn) { linkPopState.btn.classList.remove('open'); linkPopState.btn.setAttribute('aria-expanded', 'false'); }
+            linkPopState.btn = null;
+            setTimeout(() => { if (!linkPopState.open) { pop.style.display = 'none'; _ge('link-pop-bg').style.display = 'none'; } }, 260);
+        }
+        function openLinkPop(e, id) {
+            e.stopPropagation(); e.preventDefault();
+            const btn = e.currentTarget;
+            if (linkPopState.open && linkPopState.id === id) return closeLinkPop();
+            if (linkPopState.open) closeLinkPop();
+            const item = vaultData.find(i => i.id === id); if (!item) return;
+            const links = itemLinkList(item); if (!links.length) return;
+            let pop = _ge('link-pop'), bg = _ge('link-pop-bg');
+            if (!pop) {
+                bg = document.createElement('div'); bg.id = 'link-pop-bg'; document.body.appendChild(bg);
+                pop = document.createElement('div'); pop.id = 'link-pop'; pop.setAttribute('role', 'dialog'); document.body.appendChild(pop);
+                bg.addEventListener('click', e2 => { e2.stopPropagation(); closeLinkPop(); });
+                pop.addEventListener('click', e2 => { e2.stopPropagation(); if (e2.target.closest('a.lp-row')) setTimeout(closeLinkPop, 80); });
+                window.addEventListener('scroll', e2 => { if (linkPopState.open && !(e2.target.closest && e2.target.closest('#link-pop')) && window.innerWidth > 640) closeLinkPop(); }, true);
+                window.addEventListener('resize', () => closeLinkPop());
+                window.addEventListener('keydown', e2 => { if (linkPopState.open && e2.key === 'Escape') { e2.stopImmediatePropagation(); closeLinkPop(); } }, true);
+            }
+            pop.style.cssText = loreCardVars(item.sectionId); // the popover wears the same empire colours as its card
+            pop.textContent = '';
+            const head = document.createElement('div'); head.className = 'lp-head';
+            const t1 = document.createElement('span'); t1.textContent = item.title || 'Links'; const t2 = document.createElement('span'); t2.textContent = links.length + (links.length === 1 ? ' link' : ' links');
+            head.appendChild(t1); head.appendChild(t2); pop.appendChild(head);
+            links.forEach(l => {
+                const href = safeLinkHref(l.url); let dom = ''; try { dom = new URL(href).hostname.replace(/^www\./, ''); } catch (err) { dom = l.url; }
+                const a = document.createElement('a'); a.className = 'lp-row'; a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer';
+                a.innerHTML = '<span class="lp-ico"><i class="fas ' + (l.bio ? 'fa-circle-user' : 'fa-link') + '"></i></span><span class="lp-txt"><div class="lp-label"></div><div class="lp-dom"></div></span><i class="fas fa-arrow-up-right-from-square lp-go"></i>';
+                a.querySelector('.lp-label').textContent = l.label; a.querySelector('.lp-dom').textContent = dom; pop.appendChild(a);
+            });
+            bg.style.display = 'block'; pop.style.display = 'block'; pop.style.visibility = 'hidden';
+            if (window.innerWidth > 640) {
+                const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+                let left = Math.min(Math.max(12, r.left), window.innerWidth - pw - 12), top = r.bottom + 8;
+                if (top + ph > window.innerHeight - 12) top = Math.max(12, r.top - ph - 8);
+                pop.style.left = left + 'px'; pop.style.top = top + 'px';
+            }
+            pop.style.visibility = ''; void pop.offsetWidth; bg.classList.add('open'); pop.classList.add('open');
+            btn.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); linkPopState.open = true; linkPopState.id = id; linkPopState.btn = btn;
+        }
+
         function buildCardHTML(item, idxInBatch = 0) {
             // Stagger fade-up entrance — high-performance devices only. Capped at the
             // first 18 cards of a batch so a big grid doesn't leave the last cards
@@ -3853,12 +5198,11 @@
             
             let tagsHTML = '<div class="flex flex-wrap gap-1.5 mt-2 mb-2">'; if (item.categories) { item.categories.forEach(cat => { tagsHTML += `<span onclick="event.stopPropagation(); setCategoryFilter('${cat}')" class="text-[9px] font-black text-rose-300 uppercase tracking-wider bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/40 px-2.5 py-1 rounded-md shadow-sm cursor-pointer transition-colors">${cat}</span>`; }); } tagsHTML += '</div>'; 
             
-            let bioHTML = ''; if(item.bioLink && item.bioLink.trim()) bioHTML = `<a href="${item.bioLink}" target="_blank" onclick="event.stopPropagation()" class="block w-full text-center py-2 bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white rounded-lg text-[10px] font-black uppercase tracking-widest mt-2 mb-2 shadow-md transition-transform active:scale-[0.98] border border-rose-400/50"><i class="fa-solid fa-circle-user mr-1 text-sm"></i> ​UNWRAP ME</a>`; 
-            
-            let linksHTML = ''; if(item.urls && item.urls.length > 0) { linksHTML = `<div class="flex gap-1.5 mt-2 flex-wrap">`; item.urls.forEach(u => { let uStr = typeof u === 'string' ? u : u.url; let lStr = typeof u === 'string' ? getDomainText(uStr) : (u.label || getDomainText(uStr)); if(uStr.trim()) linksHTML += `<a href="${uStr}" target="_blank" onclick="event.stopPropagation()" class="px-2.5 py-1 flex items-center gap-1 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-md transition-colors text-[9px] font-bold uppercase tracking-tight shadow-sm"><i class="fas fa-link text-[8px] text-rose-300"></i> ${lStr}</a>`; }); linksHTML += `</div>`; } 
-            
+            // the profile button stays on the card as before; the other links live behind the counter pill (see openLinkPop)
+            let bioHTML = ''; if(item.bioLink && item.bioLink.trim()) bioHTML = `<a href="${item.bioLink}" target="_blank" onclick="event.stopPropagation()" class="block w-full text-center py-2 bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white rounded-lg text-[10px] font-black uppercase tracking-widest mt-2 mb-2 shadow-md transition-transform active:scale-[0.98] border border-rose-400/50"><i class="fa-solid fa-circle-user mr-1 text-sm"></i> UNWRAP ME</a>`;
             const dObj = new Date(item.timestamp || item.id); const dStr = dObj.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
-            const linkCountHTML = (item.urls && item.urls.length > 0) ? `<span class="text-[8px] font-bold text-white uppercase bg-rose-500/20 px-2 py-1 rounded-md border border-rose-500/30 shadow-sm ml-2"><i class="fas fa-link text-rose-300 mr-1"></i> ${item.urls.length} Links</span>` : '';
+            const linkTotal = itemLinkList(item).length;
+            const linkCountHTML = linkTotal > 0 ? `<button type="button" onclick="openLinkPop(event, ${item.id})" aria-haspopup="dialog" class="link-pill"><i class="fas fa-link"></i> ${linkTotal} ${linkTotal === 1 ? 'Link' : 'Links'} <i class="fas fa-chevron-down"></i></button>` : '';
             
             let coverImage = coverBlobOf(item);
             let u = blobUrlMap.get(item.id); if(!u && coverImage) { u = typeof coverImage === 'string' ? coverImage : URL.createObjectURL(coverImage); blobUrlMap.set(item.id, u); } else if (!u) u = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48L3N2Zz4='; 
@@ -3881,14 +5225,15 @@
 
             const crownIcon = (item.championships && item.championships > 0) ? `<i class="fas fa-crown text-yellow-400 mr-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="Past Champion"></i> ` : '';
 
-            return `<div class="grid-card hover-card ${cardEnterClass} p-4 flex flex-col h-full cursor-default select-none relative overflow-hidden ${pinClass}" data-id="${item.id}" ${cardEnterStyle}> 
+            const loreStyle = loreCardVars(item.sectionId) + (animateCurrentRenderPass ? `animation-delay:${Math.min(idxInBatch, 18) * 28}ms;` : '');
+            return `<div class="grid-card hover-card lore-card ${cardEnterClass} p-4 flex flex-col h-full cursor-default select-none relative overflow-hidden ${pinClass}" data-id="${item.id}" style="${loreStyle}"> 
                     ${cbHTML} ${favHTML} ${pinHTML}
                     <div onclick="openView('${item.id}')" class="img-box cursor-zoom-in relative">${badgeHtml} ${multiBadge} ${sectionLabel}<img src="${u}" loading="lazy" decoding="async" style="object-position: ${posX}% ${posY}%; transform: scale(${scaleVal});"></div> 
                     <div class="mt-5 flex-grow flex flex-col justify-between relative z-10"> 
                         <div> 
                             <div class="flex justify-between items-start mb-2 gap-2"><h4 class="text-base sm:text-lg font-black truncate uppercase tracking-tight flex-grow text-white drop-shadow-md">${crownIcon}${item.title || 'Nameless Tease'}</h4></div> 
                             <div class="flex items-center mb-3"><span class="text-[8px] font-bold text-white uppercase bg-white/10 px-2 py-1 rounded-md border border-white/10 shadow-sm"><i class="far fa-clock text-rose-300 mr-1"></i> ${dStr}</span> ${linkCountHTML}</div>
-                            ${bioHTML} ${tagsHTML} ${linksHTML} 
+                            ${bioHTML} ${tagsHTML} 
                         </div> 
                         <div class="flex gap-2 mt-4 pt-4 border-t border-white/10"> 
                             <button onclick="event.stopPropagation(); editItem(${item.id});" class="flex-1 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black text-white uppercase tracking-wider transition-colors active:scale-95 border border-white/10 shadow-sm">Edit</button> 
@@ -4580,7 +5925,7 @@
                 vaultOut.push(cloned);
                 if (idx % 25 === 0) await new Promise(r => setTimeout(r, 0));
             }
-            const headerBytes = new TextEncoder().encode(JSON.stringify({ v: 1, sectionsConfig: customSections, boards: loadBoards(), imageSizes, vault: vaultOut }));
+            const headerBytes = new TextEncoder().encode(JSON.stringify({ v: 1, sectionsConfig: customSections, boards: loadBoards(), codex: codexLoad(), imageSizes, vault: vaultOut }));
             const lenBytes = new Uint8Array(4); new DataView(lenBytes.buffer).setUint32(0, headerBytes.byteLength, true);
             const magicBytes = new TextEncoder().encode(BACKUP_MAGIC);
             return new Blob([magicBytes, lenBytes, headerBytes, ...imageParts], { type: 'application/octet-stream' });
@@ -4610,7 +5955,7 @@
                 delete out.posterRef;
                 return out;
             });
-            return { sectionsConfig: header.sectionsConfig || [], boards: header.boards || [], vault };
+            return { sectionsConfig: header.sectionsConfig || [], boards: header.boards || [], codex: header.codex || null, vault };
         }
 
         async function backupToCloud() { if(activeSecurityMode === 'fake') return showToast("Cloud push blocked in boring mode", true); const u = auth.currentUser; if(!u || vaultData.length === 0) return showToast("Nothing to package...", true); showToast("Packaging desires..."); try { const blob = await buildBackupBlob(vaultData); await storage.ref('vault_max_backups/' + u.uid + '/data.json').put(blob); setAchievementFlag('everCloudSynced'); markBackupHappened(); renderNewsTicker(); showToast("Cloud Fantasies Synced! ☁️💋"); } catch (err) { showToast("Upload failure: " + err.message, true); } }
@@ -4766,6 +6111,7 @@
 
             if(importedSections.length > 0) { importedSections.forEach(sec => { if(!customSections.find(s => s.id === sec.id)) customSections.push(sec); }); saveSectionsConfig(); }
             mergeImportedBoards(data.boards);
+            try { if (data.codex) codexMerge(data.codex); } catch (e) { console.error('Codex import failed', e); }
 
             let importedCount = 0; let processedItems = [];
             for(let idx = 0; idx < importedVault.length; idx++) {
