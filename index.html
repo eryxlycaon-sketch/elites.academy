@@ -220,6 +220,13 @@
         }
         body.global-blur .img-box:hover img { filter: blur(15px) brightness(0.7); }
 
+        /* ===== Timeline River ===== */
+        .river-g-on { background: linear-gradient(90deg, #06b6d4, #ec4899); color: #fff; }
+        .river-g-off { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+        .tr-thumb { position: relative; overflow: hidden; border-radius: 12px; aspect-ratio: 1; cursor: pointer; background: #222; border: 1px solid rgba(255,255,255,0.1); }
+        .tr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        body.global-blur .tr-thumb img { filter: blur(18px) brightness(0.55) contrast(1.2); transform: scale(1.2); }
+
         /* ===== Monthly recap ===== */
         @keyframes recapFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
         .recap-seg-run { transform-origin: left; animation: recapFill var(--recap-dur, 5600ms) linear forwards; }
@@ -725,6 +732,10 @@
         #empire-codex .cx-new { margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-style: normal; font-size: 0.55rem; font-weight: 800; letter-spacing: 0.14em; background: #ffd700; color: #000; }
         #empire-portal { position: fixed; inset: 0; z-index: 1090; display: none; opacity: 0; overflow: hidden; background: #000; cursor: pointer; }
         #empire-portal .ep-bg { position: absolute; inset: 0; }
+        /* Realm cover photo behind the portal text: only a light blur so the picture stays recognisable */
+        #empire-portal .ep-cover { position: absolute; inset: -3%; display: none; background-size: cover; background-position: center; filter: blur(6px) brightness(0.78) saturate(1.1); transform: scale(1.04); will-change: transform; }
+        .low-power #empire-portal .ep-cover { filter: blur(3px) brightness(0.7); }
+        .no-blur #empire-portal .ep-cover { filter: brightness(0.7); }
         #empire-portal .ep-ring { position: absolute; left: 50%; top: 50%; width: 70vmin; height: 70vmin; margin: -35vmin 0 0 -35vmin; border-radius: 50%; border: 2px solid var(--emp-accent); box-shadow: 0 0 60px var(--emp-glow), inset 0 0 60px var(--emp-glow); opacity: 0; will-change: transform, opacity; }
         #empire-portal .ep-ring2 { border-color: var(--emp-accent2); box-shadow: 0 0 40px var(--emp-accent2), inset 0 0 40px var(--emp-accent2); }
         #empire-portal .ep-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; opacity: 0; }
@@ -1034,7 +1045,7 @@
             </p>
             <div id="curfew-countdown" class="curfew-countdown-time text-4xl font-black mb-2">00:00:00</div>
             <p class="text-[10px] uppercase tracking-[0.2em]" style="color:#5b8bb0;">until it reopens</p>
-            <button id="curfew-bypass-btn" onclick="useCurfewBypass()" class="mt-8 text-[10px] uppercase tracking-[0.15em] underline opacity-40 hover:opacity-80 transition-opacity" style="color:#5b8bb0;">Emergency Access (<span id="curfew-bypass-remaining">2</span> left this month)</button>
+            <button id="curfew-bypass-btn" onclick="useCurfewBypass()" class="mt-8 text-[10px] uppercase tracking-[0.15em] underline opacity-40 hover:opacity-80 transition-opacity" style="color:#5b8bb0;">Emergency Access (<span id="curfew-bypass-remaining">6</span> left this month)</button>
         </div>
     </div>
 
@@ -1389,6 +1400,29 @@
                 
                 <div id="category-stats"></div>
 
+                <!-- TIMELINE RIVER: artifacts as a flowing river, swelling in the months you gathered the most -->
+                <div id="river-card" class="glass-card p-5 sm:p-8 space-y-4 font-bold text-sm mb-6 border-t-4 border-cyan-400 rounded-[30px]">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-xl font-black tracking-tight text-cyan-300 uppercase flex items-center gap-2 drop-shadow-sm"><i class="fas fa-water"></i> Timeline River</h3>
+                            <p class="text-[10px] uppercase font-black opacity-60 tracking-widest text-white mt-1">The wider &amp; hotter the water, the more you gathered</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <select id="river-scope" onchange="riverSetScope(this.value)" class="rounded-xl px-3 py-2 outline-none font-bold text-[11px] text-white bg-black/40 border border-white/10 max-w-[160px]"></select>
+                            <div class="flex rounded-xl overflow-hidden border border-white/15">
+                                <button id="river-g-month" onclick="riverSetGran('month')" class="px-3 py-2 text-[10px] font-black uppercase tracking-widest river-g-on">Month</button>
+                                <button id="river-g-year" onclick="riverSetGran('year')" class="px-3 py-2 text-[10px] font-black uppercase tracking-widest river-g-off">Year</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="river-chips" class="flex flex-wrap gap-2"></div>
+                    <div id="river-scroll" class="relative overflow-x-auto custom-scrollbar rounded-2xl border border-white/10 bg-black/30" style="-webkit-overflow-scrolling:touch">
+                        <canvas id="river-canvas" aria-label="Timeline river of artifacts added per month" style="display:block;cursor:pointer"></canvas>
+                    </div>
+                    <div id="river-detail"></div>
+                </div>
+
+
                 <div class="glass-card p-5 sm:p-8 space-y-4 font-bold text-sm mb-6 border-t-4 border-rose-500 rounded-[30px]">
                     <h3 class="text-xl font-black tracking-tight mb-2 text-rose-400 uppercase flex items-center gap-2 drop-shadow-sm"><i class="fas fa-chart-line"></i> Collection Evolution</h3>
                     <p class="text-[10px] uppercase font-black opacity-60 tracking-widest mb-4 text-white">The growth of your timeline</p>
@@ -1643,6 +1677,8 @@
 
             <input type="hidden" id="edit-sec-id" value="">
             <div class="flex gap-3">
+                <button id="sec-pdf-btn" onclick="exportSectionPDF(document.getElementById('edit-sec-id').value, this)" title="Export this realm as PDF" class="hidden py-3.5 bg-white/10 text-rose-200 border border-white/20 hover:bg-rose-500 hover:text-white rounded-xl font-black text-xs tracking-widest uppercase active:scale-95 transition-all px-5 shadow-sm"><i class="fas fa-file-pdf"></i></button>
+                <button id="sec-poster-btn" onclick="exportSectionPoster(document.getElementById('edit-sec-id').value, this)" title="Save this realm as a PNG poster" class="hidden py-3.5 bg-white/10 text-rose-200 border border-white/20 hover:bg-rose-500 hover:text-white rounded-xl font-black text-xs tracking-widest uppercase active:scale-95 transition-all px-4 shadow-sm"><i class="fas fa-image"></i></button>
                 <button id="sec-delete-btn" onclick="deleteSection()" class="hidden py-3.5 bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-black text-xs tracking-widest uppercase active:scale-95 transition-all px-5 shadow-sm"><i class="fas fa-trash"></i></button>
                 <button onclick="saveSection()" class="flex-grow py-3.5 bg-gradient-to-r from-rose-600 to-pink-500 text-white rounded-xl font-black text-xs tracking-widest uppercase shadow-[0_5px_25px_rgba(255,20,147,0.4)] border border-rose-400/50 active:scale-95 transition-all">Create Realm</button>
             </div>
@@ -1865,7 +1901,7 @@
             checkAchievements();
         }
 
-        // Emergency access: 2 bypasses per calendar month. A bypass lasts until the
+        // Emergency access: 6 bypasses per calendar month. A bypass lasts until the
         // current curfew window ends (stored as a timestamp) — it can't just hide the
         // overlay, because enforceTimeLimits() re-runs every 10s and attemptUnlock()
         // rejects PINs during curfew; both honour isCurfewBypassed() below. The PIN
@@ -1873,7 +1909,7 @@
         // Month is read from the trusted clock in LOCAL time: curfew is 00:00-06:00
         // local, which is still the previous day in UTC, so a UTC month key would
         // reset the allowance six hours late exactly when it's needed.
-        const CURFEW_BYPASSES_PER_MONTH = 2;
+        const CURFEW_BYPASSES_PER_MONTH = 6;
 
         function getCurfewBypassState() {
             const d = new Date(getTrueTime());
@@ -3902,6 +3938,7 @@
                         <span class="min-w-0 flex-grow"><span class="block truncate ${curSec.isLegendary ? 'text-yellow-100' : ''}">${escHtml(curSec.name)}</span><span class="block text-[10px] font-semibold opacity-60 tracking-wider">${nCur} ARTIFACTS · SWITCH</span></span>
                         <i class="fas fa-archway text-xs opacity-60"></i>
                     </button>
+                    <button onclick="exportSectionPDF('${curSec.id}', this)" class="w-10 h-10 flex-shrink-0 flex items-center justify-center text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Export this empire as PDF"><i class="fas fa-file-pdf"></i></button>
                     <button onclick="editSectionModal('${curSec.id}')" class="w-10 h-10 flex-shrink-0 flex items-center justify-center text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Edit this empire"><i class="fas fa-pen"></i></button>
                 </div>
                 <div class="px-3 pb-2 text-[10px] opacity-40 tracking-wide">W gates · C codex · hold Q wheel</div>`;
@@ -3949,7 +3986,7 @@
 
             let mobileSettingsSecHTML = '';
             customSections.forEach(sec => {
-                mobileSettingsSecHTML += `<div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm"><span class="text-xs font-bold flex items-center gap-3 text-white"><i class="fas ${sec.icon} opacity-60 w-4 text-center ${sec.isLegendary?'text-yellow-300':'text-cyan-300'}"></i> ${sec.name}</span><button onclick="editSectionModal('${sec.id}')" class="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-xl active:scale-95 transition-colors border border-white/10 shadow-sm"><i class="fas fa-pen text-xs"></i></button></div>`;
+                mobileSettingsSecHTML += `<div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm"><span class="text-xs font-bold flex items-center gap-3 text-white"><i class="fas ${sec.icon} opacity-60 w-4 text-center ${sec.isLegendary?'text-yellow-300':'text-cyan-300'}"></i> ${sec.name}</span><div class="flex gap-2"><button onclick="exportSectionPDF('${sec.id}', this)" title="Export PDF" class="w-9 h-9 flex items-center justify-center bg-rose-500/20 hover:bg-rose-500/40 text-rose-200 rounded-xl active:scale-95 transition-colors border border-rose-500/30 shadow-sm"><i class="fas fa-file-pdf text-xs"></i></button><button onclick="editSectionModal('${sec.id}')" class="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-xl active:scale-95 transition-colors border border-white/10 shadow-sm"><i class="fas fa-pen text-xs"></i></button></div></div>`;
             });
             document.getElementById('mobile-settings-sections-list').innerHTML = mobileSettingsSecHTML;
         }
@@ -3966,7 +4003,7 @@
         function ensurePortalEl() {
             let el = _ge('empire-portal'); if (el) return el;
             el = document.createElement('div'); el.id = 'empire-portal';
-            el.innerHTML = '<div class="ep-bg"></div><div class="ep-ring"></div><div class="ep-ring ep-ring2"></div><div class="ep-content"><i class="ep-icon fas"></i><h2 class="ep-title"></h2><div class="ep-line"></div><p class="ep-desc"></p><div class="ep-count"></div></div>';
+            el.innerHTML = '<div class="ep-cover"></div><div class="ep-bg"></div><div class="ep-ring"></div><div class="ep-ring ep-ring2"></div><div class="ep-content"><i class="ep-icon fas"></i><h2 class="ep-title"></h2><div class="ep-line"></div><p class="ep-desc"></p><div class="ep-count"></div></div>';
             document.body.appendChild(el); return el;
         }
         function playEmpirePortal(sec, doSwitch) {
@@ -3978,7 +4015,15 @@
             const [r, g, b] = hexToRgb(th.accent), [r2, g2, b2] = hexToRgb(th.accent2);
             el.style.setProperty('--emp-accent', th.accent); el.style.setProperty('--emp-accent2', th.accent2);
             el.style.setProperty('--emp-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.55)'); el.style.setProperty('--emp-font', EMPIRE_FONTS[th.fontKey]);
-            bg.style.background = 'radial-gradient(circle at 50% 50%, rgba(' + r + ',' + g + ',' + b + ',0.38), transparent 58%), radial-gradient(circle at 80% 85%, rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.22), transparent 55%), linear-gradient(160deg, ' + th.bg + ', #000 75%)';
+            const coverEl = el.querySelector('.ep-cover');
+            if (sec.cover) {
+                // Realm has its own photo: show it softly blurred, with a theme glow + dark veil on top so the title stays readable.
+                coverEl.style.backgroundImage = 'url("' + String(sec.cover).replace(/"/g, '%22') + '")'; coverEl.style.display = 'block';
+                bg.style.background = 'radial-gradient(circle at 50% 50%, rgba(' + r + ',' + g + ',' + b + ',0.30), transparent 60%), radial-gradient(circle at 80% 85%, rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.18), transparent 55%), radial-gradient(ellipse at center, rgba(0,0,0,0.12) 30%, rgba(0,0,0,0.62) 100%), linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.50))';
+            } else {
+                coverEl.style.display = 'none'; coverEl.style.backgroundImage = 'none';
+                bg.style.background = 'radial-gradient(circle at 50% 50%, rgba(' + r + ',' + g + ',' + b + ',0.38), transparent 58%), radial-gradient(circle at 80% 85%, rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.22), transparent 55%), linear-gradient(160deg, ' + th.bg + ', #000 75%)';
+            }
             el.querySelector('.ep-icon').className = 'ep-icon fas ' + (sec.icon || 'fa-layer-group');
             const titleEl = el.querySelector('.ep-title'); titleEl.textContent = sec.name || 'Realm'; titleEl.style.color = sec.isLegendary ? '#ffd700' : '';
             const descEl = el.querySelector('.ep-desc'); descEl.textContent = sec.desc || ''; descEl.style.display = sec.desc ? '' : 'none';
@@ -4708,7 +4753,7 @@
             document.getElementById('sec-cover-preview').src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMyMjIiLz48L3N2Zz4=";
             document.getElementById('sec-legendary-checkbox').checked = false;
             document.getElementById('edit-sec-id').value = ""; 
-            document.getElementById('sec-delete-btn').classList.add('hidden'); 
+            document.getElementById('sec-delete-btn').classList.add('hidden'); document.getElementById('sec-pdf-btn').classList.add('hidden'); document.getElementById('sec-poster-btn').classList.add('hidden'); 
             selectIcon('fa-layer-group'); 
             loadSecThemeIntoModal(null);
             document.getElementById('section-modal').classList.remove('hidden'); 
@@ -4724,6 +4769,7 @@
             document.getElementById('sec-legendary-checkbox').checked = sec.isLegendary || false;
             document.getElementById('edit-sec-id').value = id; 
             if(customSections.length > 1) document.getElementById('sec-delete-btn').classList.remove('hidden'); 
+            document.getElementById('sec-pdf-btn').classList.remove('hidden'); document.getElementById('sec-poster-btn').classList.remove('hidden'); 
             selectIcon(sec.icon); 
             loadSecThemeIntoModal(sec);
             document.getElementById('section-modal').classList.remove('hidden'); 
@@ -5773,7 +5819,7 @@
             
             let html = ` <div class="grid grid-cols-3 gap-3 mb-6"> <div class="bg-rose-500/20 text-rose-300 border border-rose-500/30 p-4 rounded-[24px] flex flex-col items-center shadow-inner text-center"> <span class="text-2xl sm:text-3xl font-black drop-shadow-md">${total}</span> <span class="text-[9px] sm:text-[10px] uppercase font-bold mt-1 text-white opacity-80">Total Teases</span> </div> <div class="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 p-4 rounded-[24px] flex flex-col items-center shadow-inner text-center"> <span class="text-2xl sm:text-3xl font-black drop-shadow-md">${totalPics}</span> <span class="text-[9px] sm:text-[10px] uppercase font-bold mt-1 text-white opacity-80">Total Pics</span> </div> <div class="bg-red-500/20 text-red-300 border border-red-500/30 p-4 rounded-[24px] flex flex-col items-center shadow-inner text-center"> <span class="text-2xl sm:text-3xl font-black drop-shadow-md">${favs}</span> <span class="text-[9px] sm:text-[10px] uppercase font-bold mt-1 text-white opacity-80">Adored</span> </div> </div> <h4 class="text-xs uppercase opacity-70 mb-4 border-b border-white/20 pb-2 text-white">Realm Density</h4> `; 
             customSections.forEach(sec => { html += `<div onclick="switchSection('${sec.id}')" class="flex justify-between items-center py-3.5 border-b border-white/10 cursor-pointer hover:bg-white/10 transition-colors rounded-xl px-3 mb-1"> <span class="opacity-90 font-black text-sm text-white"><i class="fas ${sec.icon} text-cyan-300 text-xs mr-3 drop-shadow-sm"></i>${sec.name}</span> <span class="bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs text-white shadow-sm">${secMap[sec.id] || 0}</span> </div>`; }); 
-            document.getElementById('category-stats').innerHTML = html; 
+            document.getElementById('category-stats').innerHTML = html; try { renderTimelineRiver(); } catch (riverErr) { console.error(riverErr); } 
 
             if(window.Chart) {
                 let sortedVault = [...vaultData].sort((a,b) => (a.timestamp||a.id) - (b.timestamp||b.id)); let labelsMap = new Map(); let cumSum = 0;
@@ -6220,6 +6266,688 @@
                 const pdfDataUri = doc.output('datauristring'); const dlAnchorElem = document.createElement('a'); dlAnchorElem.href = pdfDataUri; dlAnchorElem.download = "Forbidden_Desires_Roster.pdf"; dlAnchorElem.style.display = 'none'; document.body.appendChild(dlAnchorElem); dlAnchorElem.click();
                 setTimeout(() => { document.body.removeChild(dlAnchorElem); }, 300); showToast("Exquisite PDF Exported");
             } catch(e) { console.error(e); showToast("PDF Export failed", true); }
+        }
+
+        // ===== REALM POSTER (PNG) =====
+        // One button -> one shareable 1080x1620 poster: the realm's best photos in a collage,
+        // wearing the realm's own theme (colours + font), its name and its artifact count.
+        // "Best" = favourites first, then most opened, then flavour-badged, then richer galleries.
+        // Photos follow the same privacy blur as the PDF export (global-blur ON => blurred in the PNG too).
+        const POSTER_W = 1080, POSTER_H = 1620;
+        const POSTER_FONT_WEIGHT = { outfit: 900, cinzel: 800, garamond: 700, uncial: 400, mincho: 800, orbitron: 800 };
+        // Each tile is [x, y, w, h] on a 12 x 12 grid. The first tile is always the biggest (the hero).
+        const POSTER_LAYOUTS = {
+            1: [[0,0,12,12]],
+            2: [[0,0,6,12],[6,0,6,12]],
+            3: [[0,0,7,12],[7,0,5,6],[7,6,5,6]],
+            4: [[0,0,7,7],[7,0,5,7],[0,7,5,5],[5,7,7,5]],
+            5: [[0,0,7,7],[7,0,5,4],[7,4,5,3],[0,7,6,5],[6,7,6,5]],
+            6: [[0,0,8,7],[8,0,4,3.5],[8,3.5,4,3.5],[0,7,4,5],[4,7,4,5],[8,7,4,5]],
+            7: [[0,0,8,6],[8,0,4,3],[8,3,4,3],[0,6,3,6],[3,6,3,6],[6,6,3,6],[9,6,3,6]],
+            8: [[0,0,6,6],[6,0,3,3],[9,0,3,3],[6,3,3,3],[9,3,3,3],[0,6,4,6],[4,6,4,6],[8,6,4,6]],
+            9: [[0,0,8,6],[8,0,4,3],[8,3,4,3],[0,6,4,3],[4,6,4,3],[8,6,4,3],[0,9,4,3],[4,9,4,3],[8,9,4,3]]
+        };
+
+        function posterPickItems(secId, max) {
+            const views = {};
+            try {
+                const vs = readJSONStore('v_max_view_stats', {});
+                Object.values(vs).forEach(m => { Object.keys(m || {}).forEach(id => { views[id] = (views[id] || 0) + (m[id] || 0); }); });
+            } catch (e) {}
+            return vaultData.filter(i => i.sectionId === secId && coverBlobOf(i)).map(i => {
+                const pics = (i.gallery || []).filter(b => !isVideoBlob(b)).length || 1;
+                const score = (i.isFavorite ? 1000 : 0) + Math.min(views[String(i.id)] || 0, 200) * 3 + ((i.rarity && String(i.rarity).trim()) ? 40 : 0) + Math.min(pics, 10) * 2 + ((i.timestamp || i.id || 0) / 1e13);
+                return { item: i, score };
+            }).sort((a, b) => b.score - a.score).slice(0, max).map(x => x.item);
+        }
+
+        function posterRoundRect(ctx, x, y, w, h, r) {
+            r = Math.min(r, w / 2, h / 2);
+            ctx.beginPath(); ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+        }
+
+        // Centre-crop `im` into (x,y,w,h). focal = {x,y} in percent (same meaning as CSS object-position).
+        // blurDiv > 1 => draw tiny first then scale up (a cheap blur that works in every browser).
+        function posterDrawCover(ctx, im, x, y, w, h, focal, blurDiv) {
+            const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height; if (!iw || !ih) return false;
+            const k = Math.max(w / iw, h / ih), sw = w / k, sh = h / k;
+            const fx = Math.min(100, Math.max(0, (focal && typeof focal.x === 'number') ? focal.x : 50)) / 100;
+            const fy = Math.min(100, Math.max(0, (focal && typeof focal.y === 'number') ? focal.y : 50)) / 100;
+            const sx = (iw - sw) * fx, sy = (ih - sh) * fy;
+            ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+            if (blurDiv && blurDiv > 1) {
+                const t = document.createElement('canvas'); t.width = Math.max(2, Math.round(w / blurDiv)); t.height = Math.max(2, Math.round(h / blurDiv));
+                const tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high'; tx.drawImage(im, sx, sy, sw, sh, 0, 0, t.width, t.height);
+                ctx.drawImage(t, x, y, w, h);
+            } else { ctx.drawImage(im, sx, sy, sw, sh, x, y, w, h); }
+            return true;
+        }
+
+        // Letter-spaced text drawn char by char (ctx.letterSpacing is not supported everywhere). Latin labels only.
+        function posterSpaced(ctx, text, cx, y, sp) {
+            const chars = Array.from(String(text)); let total = 0;
+            const ws = chars.map(ch => { const cw = ctx.measureText(ch).width; total += cw; return cw; });
+            total += sp * Math.max(0, chars.length - 1);
+            let x = cx - total / 2; const prev = ctx.textAlign; ctx.textAlign = 'left';
+            chars.forEach((ch, k) => { ctx.fillText(ch, x, y); x += ws[k] + sp; });
+            ctx.textAlign = prev;
+        }
+
+        function posterWrap(ctx, text, maxW, maxLines) {
+            const words = String(text).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+            const all = []; let cur = '';
+            words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (!cur || ctx.measureText(t).width <= maxW) cur = t; else { all.push(cur); cur = w; } });
+            if (cur) all.push(cur);
+            if (all.length <= maxLines) return all;
+            const out = all.slice(0, maxLines); let last = out[maxLines - 1];
+            while (last.length > 1 && ctx.measureText(last + '\u2026').width > maxW) last = last.slice(0, -1);
+            out[maxLines - 1] = last.replace(/\s+$/, '') + '\u2026'; return out;
+        }
+
+        // Biggest size that fits on one line; otherwise a balanced two-line split; otherwise a truncated line.
+        function posterFitTitle(ctx, name, maxW, fam, wt) {
+            const setF = s => { ctx.font = wt + ' ' + s + 'px ' + fam; };
+            for (let s = 124; s >= 64; s -= 4) { setF(s); if (ctx.measureText(name).width <= maxW) return { lines: [name], size: s }; }
+            const words = name.split(/\s+/).filter(Boolean);
+            if (words.length > 1) {
+                let best = null;
+                for (let cut = 1; cut < words.length; cut++) {
+                    const a = words.slice(0, cut).join(' '), b = words.slice(cut).join(' '), diff = Math.abs(a.length - b.length);
+                    if (!best || diff < best.diff) best = { a, b, diff };
+                }
+                for (let s = 92; s >= 44; s -= 4) { setF(s); if (Math.max(ctx.measureText(best.a).width, ctx.measureText(best.b).width) <= maxW) return { lines: [best.a, best.b], size: s }; }
+            }
+            setF(44); let t = name;
+            while (t.length > 3 && ctx.measureText(t + '\u2026').width > maxW) t = t.slice(0, -1);
+            return { lines: [t + '\u2026'], size: 44 };
+        }
+
+        async function posterEnsureFont(fontKey) {
+            const fam = EMPIRE_FONTS[fontKey] || EMPIRE_FONTS.outfit, wt = POSTER_FONT_WEIGHT[fontKey] || 800;
+            try {
+                await Promise.race([
+                    Promise.all([document.fonts.load(wt + ' 80px ' + fam), document.fonts.load("800 24px 'Outfit'")]),
+                    new Promise(r => setTimeout(r, 2500))
+                ]);
+            } catch (e) {}
+            return { fam, wt };
+        }
+
+        async function exportSectionPoster(secId, btn) {
+            if (activeSecurityMode === 'fake' || activeSecurityMode === 'locked') return showToast("Action blocked", true);
+            const sec = customSections.find(s => String(s.id) === String(secId)); if (!sec) return showToast("Realm not found", true);
+            if (window._secPosterBusy) return showToast("A poster is already being made...", true);
+            const picks = posterPickItems(sec.id, 9);
+            if (!picks.length) return showToast("This realm has no photos yet", true);
+            window._secPosterBusy = true;
+            const oldHtml = btn ? btn.innerHTML : null; if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+            showToast("Painting " + escHtml(sec.name || 'realm') + " poster...");
+            try {
+                const W = POSTER_W, H = POSTER_H;
+                const th = getEmpireTheme(sec), A = hexToRgb(th.accent), A2 = hexToRgb(th.accent2), BG = hexToRgb(th.bg);
+                const mix = (c1, c2, t) => c1.map((v, i) => Math.round(v * (1 - t) + c2[i] * t));
+                const rgb = (c, a) => a == null ? 'rgb(' + c.join(',') + ')' : 'rgba(' + c.join(',') + ',' + a + ')';
+                const bgc = BG.map(v => Math.round(v * 0.6 + 4));
+                const blurOn = document.body.classList.contains('global-blur');
+                const legendary = !!sec.isLegendary, gold = '#ffd700';
+                const secItems = vaultData.filter(i => i.sectionId === sec.id);
+                const N = secItems.length;
+                const favs = secItems.filter(i => i.isFavorite).length;
+                const pics = secItems.reduce((n, i) => n + ((i.gallery && i.gallery.length) ? i.gallery.filter(b => !isVideoBlob(b)).length : (i.img && !isVideoBlob(i.img) ? 1 : 0)), 0);
+
+                const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+                const ctx = cv.getContext('2d');
+                const font = await posterEnsureFont(th.fontKey);
+
+                // ---- background ----
+                ctx.fillStyle = rgb(bgc); ctx.fillRect(0, 0, W, H);
+                if (sec.cover) {
+                    const cim = await pdfLoadImage(sec.cover);
+                    if (cim) {
+                        ctx.save(); posterDrawCover(ctx, cim, 0, 0, W, 560, null, blurOn ? 6 : 0); ctx.restore();
+                        const fg = ctx.createLinearGradient(0, 0, 0, 560);
+                        fg.addColorStop(0, rgb(bgc, 0.55)); fg.addColorStop(0.6, rgb(bgc, 0.84)); fg.addColorStop(1, rgb(bgc, 1));
+                        ctx.fillStyle = fg; ctx.fillRect(0, 0, W, 560);
+                    }
+                }
+                let g = ctx.createRadialGradient(180, 140, 0, 180, 140, 760);
+                g.addColorStop(0, rgb(A, 0.38)); g.addColorStop(1, rgb(A, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+                g = ctx.createRadialGradient(W - 120, H - 140, 0, W - 120, H - 140, 820);
+                g.addColorStop(0, rgb(A2, 0.34)); g.addColorStop(1, rgb(A2, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+                g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.78);
+                g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.5)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+                // ---- header: tag, name, divider, count ----
+                ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+                ctx.font = "800 24px 'Outfit', sans-serif";
+                ctx.fillStyle = legendary ? gold : rgb(mix(A, [255, 255, 255], 0.25));
+                posterSpaced(ctx, legendary ? 'LEGENDARY REALM' : 'REALM', W / 2, 118, 10);
+
+                const fit = posterFitTitle(ctx, String(sec.name || 'Realm').toUpperCase(), W - 170, font.fam, font.wt);
+                const baseY = fit.lines.length === 1 ? 235 : 195, lh = fit.size * 1.05;
+                ctx.save();
+                ctx.shadowColor = rgb(A, 0.65); ctx.shadowBlur = 38;
+                ctx.fillStyle = legendary ? gold : '#ffffff'; ctx.font = font.wt + ' ' + fit.size + 'px ' + font.fam; ctx.textAlign = 'center';
+                fit.lines.forEach((ln, k) => ctx.fillText(ln, W / 2, baseY + k * lh));
+                ctx.restore();
+
+                const divY = baseY + (fit.lines.length - 1) * lh + 40;
+                const dg = ctx.createLinearGradient(W / 2 - 130, 0, W / 2 + 130, 0); dg.addColorStop(0, rgb(A)); dg.addColorStop(1, rgb(A2));
+                ctx.fillStyle = dg; posterRoundRect(ctx, W / 2 - 130, divY, 260, 5, 2.5); ctx.fill();
+
+                ctx.font = "800 38px 'Outfit', sans-serif"; ctx.fillStyle = rgb(mix(A, [255, 255, 255], 0.2)); ctx.textAlign = 'center';
+                posterSpaced(ctx, N + (N === 1 ? ' ARTIFACT' : ' ARTIFACTS'), W / 2, divY + 68, 8);
+                const sub = []; if (favs) sub.push('\u2605 ' + favs + ' ADORED'); if (pics) sub.push(pics + (pics === 1 ? ' PHOTO' : ' PHOTOS'));
+                if (sub.length) { ctx.font = "700 22px 'Outfit', sans-serif"; ctx.fillStyle = 'rgba(255,255,255,0.7)'; posterSpaced(ctx, sub.join('   \u2022   '), W / 2, divY + 112, 4); }
+
+                // ---- collage ----
+                const lay = POSTER_LAYOUTS[Math.min(9, picks.length)];
+                const CX = 60, CY = 500, CW = W - 120, CH = 900, GAP = 14, UW = CW / 12, UH = CH / 12;
+                for (let i = 0; i < lay.length; i++) {
+                    const t = lay[i], item = picks[i];
+                    const x = CX + t[0] * UW + GAP / 2, y = CY + t[1] * UH + GAP / 2, w = t[2] * UW - GAP, h = t[3] * UH - GAP;
+                    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 10;
+                    ctx.fillStyle = rgb(mix(bgc, A, 0.2)); posterRoundRect(ctx, x, y, w, h, 22); ctx.fill(); ctx.restore();
+
+                    const im = await pdfLoadImage(coverBlobOf(item));
+                    ctx.save(); posterRoundRect(ctx, x, y, w, h, 22); ctx.clip();
+                    if (!(im && posterDrawCover(ctx, im, x, y, w, h, item.imgPos, blurOn ? 14 : 0))) {
+                        const pg = ctx.createLinearGradient(x, y, x + w, y + h);
+                        pg.addColorStop(0, rgb(mix(bgc, A, 0.45))); pg.addColorStop(1, rgb(mix(bgc, A2, 0.45)));
+                        ctx.fillStyle = pg; ctx.fillRect(x, y, w, h);
+                    }
+                    const sh = ctx.createLinearGradient(0, y, 0, y + h);
+                    sh.addColorStop(0, 'rgba(255,255,255,0.10)'); sh.addColorStop(0.35, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.28)');
+                    ctx.fillStyle = sh; ctx.fillRect(x, y, w, h); ctx.restore();
+
+                    ctx.save(); posterRoundRect(ctx, x, y, w, h, 22); ctx.lineWidth = 3; ctx.strokeStyle = rgb(mix(A, [255, 255, 255], 0.15), 0.7); ctx.stroke(); ctx.restore();
+                    if (item.isFavorite) {
+                        ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.arc(x + w - 34, y + 34, 20, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = gold; ctx.font = "700 24px 'Outfit', sans-serif"; ctx.textAlign = 'center'; ctx.fillText('\u2605', x + w - 34, y + 42); ctx.restore();
+                    }
+                    if (i % 3 === 2) await new Promise(r => setTimeout(r, 0)); // let the UI breathe
+                }
+
+                // ---- footer: description, ornament, date ----
+                ctx.textAlign = 'center';
+                if (sec.desc) {
+                    ctx.font = "italic 400 28px Georgia, 'Times New Roman', serif"; ctx.fillStyle = 'rgba(255,255,255,0.75)';
+                    posterWrap(ctx, sec.desc, 860, 2).forEach((ln, k) => ctx.fillText(ln, W / 2, 1462 + k * 38));
+                }
+                ctx.save(); ctx.fillStyle = rgb(A); ctx.translate(W / 2, 1530); ctx.rotate(Math.PI / 4); ctx.fillRect(-6, -6, 12, 12); ctx.restore();
+                ctx.font = "700 20px 'Outfit', sans-serif"; ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                posterSpaced(ctx, new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(), W / 2, 1566, 6);
+
+                // ---- frame ----
+                ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = rgb(A, 0.7); posterRoundRect(ctx, 26, 26, W - 52, H - 52, 34); ctx.stroke();
+                ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.12)'; posterRoundRect(ctx, 42, 42, W - 84, H - 84, 24); ctx.stroke(); ctx.restore();
+
+                const blob = await new Promise(res => { try { cv.toBlob(b => res(b), 'image/png'); } catch (e) { res(null); } });
+                if (!blob) throw new Error('PNG encode failed');
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url;
+                a.download = (String(sec.name || 'Realm').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Realm') + '_Poster.png'; a.style.display = 'none';
+                document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 10000);
+                showToast("Realm poster saved (PNG)");
+            } catch (e) { console.error(e); showToast("Poster failed", true); }
+            finally { window._secPosterBusy = false; if (btn) { btn.disabled = false; btn.innerHTML = oldHtml; } }
+        }
+
+        // ===== TIMELINE RIVER =====
+        // Every artifact is a drop that fell into the river on the day it was added. The river flows left (past)
+        // to right (now) and swells wherever you gathered the most: its width AND its colour (teal -> hot pink)
+        // follow how many artifacts landed in that month (or year). Tap a bend to see what was added then.
+        const RIVER = { scope: 'all', gran: 'month', sel: null, data: null, geom: null, dpr: 1, raf: 0, last: 0, vis: false, inited: false, center: true, resizeT: 0, io: null };
+
+        function riverLowPower() {
+            try { return document.documentElement.classList.contains('low-power') || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; }
+        }
+        function riverMonthName(y, m, long) { return new Date(y, m, 1).toLocaleDateString(undefined, long ? { month: 'long', year: 'numeric' } : { month: 'short' }); }
+        function riverBuckets() { return RIVER.data ? (RIVER.gran === 'year' ? RIVER.data.years : RIVER.data.months) : []; }
+
+        function riverCompute() {
+            const tsOf = i => i.timestamp || i.id || 0;
+            const dated = vaultData.filter(i => (RIVER.scope === 'all' || String(i.sectionId) === String(RIVER.scope)) && typeof tsOf(i) === 'number' && tsOf(i) > 0 && isFinite(tsOf(i)));
+            if (!dated.length) return null;
+            let minT = Infinity, maxT = 0; dated.forEach(i => { const t = tsOf(i); if (t < minT) minT = t; if (t > maxT) maxT = t; });
+            const d0 = new Date(minT), dEnd = new Date(Math.max(maxT, Date.now()));
+            const startIdx = d0.getFullYear() * 12 + d0.getMonth(), endIdx = dEnd.getFullYear() * 12 + dEnd.getMonth();
+            const months = [];
+            for (let k = startIdx; k <= endIdx; k++) months.push({ y: Math.floor(k / 12), m: k % 12, count: 0, items: [], secs: {} });
+            dated.forEach(i => {
+                const d = new Date(tsOf(i)), b = months[d.getFullYear() * 12 + d.getMonth() - startIdx];
+                if (b) { b.count++; b.items.push(i); b.secs[i.sectionId] = (b.secs[i.sectionId] || 0) + 1; }
+            });
+            const years = [];
+            for (let y = d0.getFullYear(); y <= dEnd.getFullYear(); y++) years.push({ y, count: 0, items: [], secs: {}, months: new Array(12).fill(0) });
+            months.forEach(b => {
+                b.items.sort((a, c) => tsOf(a) - tsOf(c));
+                const Y = years[b.y - d0.getFullYear()];
+                Y.count += b.count; b.items.forEach(i => Y.items.push(i)); Y.months[b.m] += b.count;
+                for (const s in b.secs) Y.secs[s] = (Y.secs[s] || 0) + b.secs[s];
+            });
+            const pickPeak = arr => { let bi = -1, bc = 0; arr.forEach((b, i) => { if (b.count > 0 && b.count >= bc) { bc = b.count; bi = i; } }); return bi; }; // ties -> the most recent
+            return { months, years, total: dated.length, peakMonth: pickPeak(months), peakYear: pickPeak(years), activeMonths: months.filter(b => b.count > 0).length };
+        }
+
+        function riverBuild(cssW) {
+            const bks = riverBuckets(), n = bks.length, isY = RIVER.gran === 'year';
+            let mx = 1; bks.forEach(b => { if (b.count > mx) mx = b.count; });
+            const minCell = isY ? 88 : 46, padX = 22;
+            const cell = Math.min(isY ? 240 : 150, Math.max(minCell, (cssW - padX * 2) / n));
+            const totalW = Math.max(cssW, Math.ceil(cell * n + padX * 2)), padL = (totalW - cell * n) / 2;
+            const H = 300, cy0 = 150, minT = 7, maxT = 124;
+            const th = i => minT + Math.pow(bks[Math.min(n - 1, Math.max(0, i))].count / mx, 0.85) * (maxT - minT);
+            const cx = i => padL + cell * (i + 0.5);
+            const cyAt = t => cy0 + Math.sin(t * 0.9 + 0.6) * 10 + Math.sin(t * 0.37 + 1.3) * 8; // the meander
+            const cr = (a, b, c, d, t) => 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
+
+            const pts = [], x0 = padL, x1 = padL + cell * n;
+            for (let x = x0; x <= x1 + 0.01; x += 3) {
+                const t = (x - padL) / cell - 0.5, tc = Math.min(n - 1, Math.max(0, t));
+                const i = Math.min(Math.max(n - 2, 0), Math.floor(tc)), f = n > 1 ? tc - i : 0;
+                let T = n > 1 ? cr(th(i - 1), th(i), th(i + 1), th(i + 2), f) : th(0);
+                T = Math.min(maxT * 1.04, Math.max(minT, T));
+                pts.push([x, cyAt(t), T]);
+            }
+            const edge = (fn) => { const p = new Path2D(); pts.forEach((q, k) => { const y = fn(q[1], q[2]); k ? p.lineTo(q[0], y) : p.moveTo(q[0], y); }); return p; };
+            const outline = (pad) => {
+                const p = new Path2D();
+                pts.forEach((q, k) => { const y = q[1] - q[2] / 2 - pad; k ? p.lineTo(q[0], y) : p.moveTo(q[0], y); });
+                for (let k = pts.length - 1; k >= 0; k--) p.lineTo(pts[k][0], pts[k][1] + pts[k][2] / 2 + pad);
+                p.closePath(); return p;
+            };
+            const peb = [];
+            bks.forEach((b, i) => {
+                let s = (i + 1) * 9301 + 49297; const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+                const T = th(i), C = cyAt(i), c = Math.min(b.count, 26);
+                for (let k = 0; k < c; k++) peb.push([cx(i) + (rnd() - 0.5) * cell * 0.8, C + (rnd() - 0.5) * T * 0.72, 1.6 + rnd() * 1.8, 0.35 + rnd() * 0.45]);
+            });
+            const lo = [8, 145, 178], hi = [255, 20, 147];
+            const col = r => { const k = Math.pow(r, 0.8); return [0, 1, 2].map(j => Math.round(lo[j] + (hi[j] - lo[j]) * k)); };
+            return {
+                n, cell, padL, totalW, H, isY, mx, cx, th, cyAt, layer: null,
+                ribbon: outline(0), bank: outline(10), flows: [-0.3, 0, 0.3].map(f => edge((C, T) => C + f * T)),
+                peb, stops: bks.map((b, i) => ({ pos: cx(i) / totalW, rgb: col(b.count / mx) }))
+            };
+        }
+
+        function riverLayoutCanvas() {
+            const sc = document.getElementById('river-scroll'), cv = document.getElementById('river-canvas'); if (!sc || !cv) return;
+            const cssW = Math.max(260, sc.clientWidth || (window.innerWidth - 56));
+            const g = riverBuild(cssW); RIVER.geom = g;
+            RIVER.dpr = Math.max(0.75, Math.min(window.devicePixelRatio || 1, 2, 8192 / g.totalW));
+            cv.width = Math.round(g.totalW * RIVER.dpr); cv.height = Math.round(g.H * RIVER.dpr);
+            cv.style.width = g.totalW + 'px'; cv.style.height = g.H + 'px';
+        }
+
+        // Everything that doesn't move (ribbon, pebbles, labels, selection) is painted once into an offscreen layer;
+        // each animation frame only blits it and strokes the three moving flow lines on top.
+        function riverRenderLayer() {
+            const g = RIVER.geom, d = RIVER.data, cv = document.getElementById('river-canvas'); if (!g || !d || !cv) return;
+            const bks = riverBuckets(), dpr = RIVER.dpr, low = riverLowPower();
+            const peakI = g.isY ? d.peakYear : d.peakMonth;
+            const layer = document.createElement('canvas'); layer.width = cv.width; layer.height = cv.height;
+            const c = layer.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+            c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+
+            if (!g.isY) { // faint year boundaries
+                c.save(); c.strokeStyle = 'rgba(255,255,255,0.07)'; c.lineWidth = 1; c.setLineDash([3, 5]);
+                bks.forEach((b, i) => { if (b.m === 0 && i > 0) { const x = g.padL + g.cell * i; c.beginPath(); c.moveTo(x, 34); c.lineTo(x, g.H - 34); c.stroke(); } });
+                c.restore();
+            }
+            if (RIVER.sel != null && RIVER.sel < g.n) { // selected bend
+                const x = g.padL + g.cell * RIVER.sel, sg = c.createLinearGradient(0, 0, 0, g.H);
+                sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,255,255,0.11)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+                c.fillStyle = sg; c.fillRect(x + 1, 14, g.cell - 2, g.H - 28);
+                c.strokeStyle = 'rgba(255,255,255,0.16)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 0.5, 20); c.lineTo(x + 0.5, g.H - 20); c.moveTo(x + g.cell - 0.5, 20); c.lineTo(x + g.cell - 0.5, g.H - 20); c.stroke();
+            }
+            c.fillStyle = 'rgba(34,211,238,0.07)'; c.fill(g.bank); // banks
+            const lg = c.createLinearGradient(0, 0, g.totalW, 0);
+            g.stops.forEach(s => lg.addColorStop(Math.min(1, Math.max(0, s.pos)), 'rgb(' + s.rgb.join(',') + ')'));
+            c.save(); if (!low) { c.shadowColor = 'rgba(34,211,238,0.35)'; c.shadowBlur = 18; }
+            c.globalAlpha = 0.92; c.fillStyle = lg; c.fill(g.ribbon); c.restore();
+            c.save(); c.clip(g.ribbon); // depth shading + pebbles (one per artifact, up to 26 a month)
+            const vg = c.createLinearGradient(0, 0, 0, g.H); vg.addColorStop(0, 'rgba(255,255,255,0.18)'); vg.addColorStop(0.5, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.22)');
+            c.fillStyle = vg; c.fillRect(0, 0, g.totalW, g.H);
+            g.peb.forEach(p => { c.beginPath(); c.arc(p[0], p[1], p[2], 0, 6.2832); c.fillStyle = 'rgba(255,255,255,' + p[3] + ')'; c.fill(); });
+            c.restore();
+            c.strokeStyle = 'rgba(255,255,255,0.22)'; c.lineWidth = 1.2; c.stroke(g.ribbon);
+
+            bks.forEach((b, i) => { // counts above the water
+                if (!b.count || i === peakI) return; const isSel = i === RIVER.sel; if (g.cell < 36 && !isSel) return;
+                c.font = (isSel ? '900 14px' : '800 12px') + " 'Outfit', sans-serif"; c.fillStyle = isSel ? '#fff' : 'rgba(255,255,255,0.78)';
+                c.fillText(String(b.count), g.cx(i), g.cyAt(i) - g.th(i) / 2 - 9);
+            });
+            if (peakI >= 0) { // the PEAK flag
+                const b = bks[peakI], x = g.cx(peakI), yTop = g.cyAt(peakI) - g.th(peakI) / 2, label = 'PEAK \u00B7 ' + b.count;
+                c.font = "900 11px 'Outfit', sans-serif"; const w = c.measureText(label).width + 18, px = Math.min(g.totalW - w / 2 - 6, Math.max(w / 2 + 6, x));
+                c.strokeStyle = 'rgba(255,20,147,0.85)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, yTop - 24); c.lineTo(x, yTop - 2); c.stroke();
+                const pg = c.createLinearGradient(px - w / 2, 0, px + w / 2, 0); pg.addColorStop(0, '#ec4899'); pg.addColorStop(1, '#f43f5e');
+                c.fillStyle = pg; posterRoundRect(c, px - w / 2, yTop - 44, w, 20, 10); c.fill();
+                c.fillStyle = '#fff'; c.fillText(label, px, yTop - 30);
+            }
+            bks.forEach((b, i) => { // axis
+                const x = g.cx(i), isSel = i === RIVER.sel; c.fillStyle = isSel ? '#fff' : 'rgba(255,255,255,0.55)';
+                if (g.isY) { c.font = (isSel ? '900' : '700') + " 14px 'Outfit', sans-serif"; c.fillText(String(b.y), x, g.H - 16); }
+                else {
+                    c.font = (isSel ? '900' : '700') + " 11px 'Outfit', sans-serif"; c.fillText(riverMonthName(b.y, b.m, false), x, g.H - 24);
+                    if (b.m === 0 || i === 0) { c.font = "900 10px 'Outfit', sans-serif"; c.fillStyle = isSel ? '#fff' : 'rgba(236,72,153,0.95)'; c.fillText(String(b.y), x, g.H - 9); }
+                }
+            });
+            g.layer = layer;
+        }
+
+        function riverDraw(t) {
+            const cv = document.getElementById('river-canvas'), g = RIVER.geom; if (!cv || !g || !RIVER.data) return;
+            if (!g.layer) riverRenderLayer(); if (!g.layer) return;
+            const ctx = cv.getContext('2d'), dpr = RIVER.dpr;
+            ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(g.layer, 0, 0);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.clip(g.ribbon); ctx.lineCap = 'round';
+            const speed = [34, 22, 46], dash = [[16, 38], [10, 30], [22, 52]];
+            g.flows.forEach((p, k) => {
+                ctx.setLineDash(dash[k]); ctx.lineDashOffset = -(t * speed[k]); ctx.lineWidth = k === 1 ? 2.4 : 1.8;
+                ctx.strokeStyle = 'rgba(255,255,255,' + (k === 1 ? 0.38 : 0.26) + ')'; ctx.stroke(p);
+            });
+            ctx.restore();
+        }
+
+        function riverStartAnim() {
+            if (RIVER.raf) return;
+            const loop = (ts) => { RIVER.raf = requestAnimationFrame(loop); if (ts - RIVER.last < 33) return; RIVER.last = ts; riverDraw(ts / 1000); };
+            RIVER.raf = requestAnimationFrame(loop);
+        }
+        function riverStopAnim() { if (RIVER.raf) cancelAnimationFrame(RIVER.raf); RIVER.raf = 0; }
+        function riverSyncAnim() {
+            if (RIVER.data && RIVER.vis && document.visibilityState === 'visible' && !riverLowPower()) riverStartAnim(); else riverStopAnim();
+        }
+
+        function riverThumbUrl(item) {
+            let u = blobUrlMap.get(item.id); if (u) return u;
+            const cb = coverBlobOf(item); if (!cb) return null;
+            u = typeof cb === 'string' ? cb : URL.createObjectURL(cb); blobUrlMap.set(item.id, u); return u;
+        }
+        function riverOpenItem(el) { const id = el && el.dataset ? el.dataset.id : null; if (id != null) openView(id); }
+
+        function riverRenderChips() {
+            const d = RIVER.data, el = document.getElementById('river-chips'); if (!el || !d) return;
+            const pm = d.peakMonth >= 0 ? d.months[d.peakMonth] : null, py = d.peakYear >= 0 ? d.years[d.peakYear] : null;
+            const chip = (icon, label, val, cls) => `<div class="flex items-center gap-2 px-3 py-2 rounded-xl border ${cls}"><i class="fas ${icon} text-xs"></i><div class="leading-tight"><div class="text-[8px] uppercase tracking-widest opacity-70">${label}</div><div class="text-xs font-black text-white">${val}</div></div></div>`;
+            el.innerHTML = chip('fa-layer-group', 'Total', d.total, 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300')
+                + (pm ? chip('fa-mountain', 'Peak month', escHtml(riverMonthName(pm.y, pm.m, true)) + ' \u00B7 ' + pm.count, 'bg-pink-500/10 border-pink-500/30 text-pink-300') : '')
+                + (py ? chip('fa-calendar-days', 'Busiest year', py.y + ' \u00B7 ' + py.count, 'bg-violet-500/10 border-violet-500/30 text-violet-300') : '')
+                + chip('fa-droplet', 'Active months', d.activeMonths + ' / ' + d.months.length, 'bg-sky-500/10 border-sky-500/30 text-sky-300');
+        }
+
+        function riverRenderDetail() {
+            const d = RIVER.data, el = document.getElementById('river-detail'); if (!el || !d) return;
+            const bks = riverBuckets(), b = bks[RIVER.sel]; if (!b) { el.innerHTML = ''; return; }
+            const isY = RIVER.gran === 'year', peakI = isY ? d.peakYear : d.peakMonth, isPeak = b.count > 0 && bks[peakI] === b;
+            const title = isY ? String(b.y) : riverMonthName(b.y, b.m, true);
+            const pct = d.total ? Math.round(b.count * 100 / d.total) : 0, rank = b.count ? 1 + bks.filter(x => x.count > b.count).length : 0;
+            const unit = isY ? 'year' : 'month';
+            let body = '';
+            if (!b.count) {
+                body = '<p class="text-xs opacity-70 mt-2">A quiet stretch &mdash; nothing was added in this ' + unit + '.</p>';
+            } else {
+                const secChips = Object.keys(b.secs).sort((a, c) => b.secs[c] - b.secs[a]).map(id => {
+                    const s = customSections.find(x => String(x.id) === String(id));
+                    return `<span class="px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-[10px] font-black text-white">${s ? escHtml(s.name || 'Realm') : 'Unsorted'} <span class="text-cyan-300">${b.secs[id]}</span></span>`;
+                }).join('');
+                let bars = '';
+                if (isY) {
+                    const mx = Math.max(1, ...b.months), pk = b.months.lastIndexOf(Math.max(...b.months));
+                    bars = '<p class="text-[10px] uppercase tracking-widest opacity-60 mt-4 mb-1">Month by month &middot; busiest: <span class="text-pink-300">' + escHtml(riverMonthName(b.y, pk, false)) + ' (' + b.months[pk] + ')</span></p><div class="flex items-end gap-1 h-24">'
+                        + b.months.map((c, m) => `<div class="flex-1 h-full flex flex-col items-center justify-end"><div class="text-[8px] h-3 text-white/70">${c || ''}</div><div class="w-full rounded-t-md ${c && m === pk ? 'bg-gradient-to-t from-pink-600 to-pink-400' : 'bg-cyan-400/60'}" style="height:${c ? Math.max(8, Math.round(c / mx * 80)) : 3}%"></div></div>`).join('')
+                        + '</div><div class="flex gap-1 mt-1">' + b.months.map((c, m) => `<div class="flex-1 text-center text-[8px] text-white/50 uppercase">${escHtml(riverMonthName(b.y, m, false)).slice(0, 3)}</div>`).join('') + '</div>';
+                }
+                const shown = b.items.slice(0, 12), more = b.items.length - shown.length;
+                const thumbs = shown.map(i => { const u = riverThumbUrl(i); return `<div class="tr-thumb" data-id="${escHtml(String(i.id))}" onclick="riverOpenItem(this)" title="${escHtml(i.title || '')}">${u ? `<img loading="lazy" src="${u}" alt="">` : '<div class="w-full h-full flex items-center justify-center text-white/40"><i class="fas fa-image"></i></div>'}</div>`; }).join('')
+                    + (more > 0 ? `<div class="tr-thumb flex items-center justify-center text-xs font-black text-white/80">+${more}</div>` : '');
+                body = `<div class="flex flex-wrap gap-1.5 mt-3">${secChips}</div>${bars}<div class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-4">${thumbs}</div>`;
+            }
+            el.innerHTML = `<div class="bg-white/5 rounded-2xl border border-white/10 p-4 shadow-inner">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div><p class="text-[10px] uppercase tracking-widest opacity-60">${escHtml(title)}</p>
+                    <p class="text-2xl font-black text-white drop-shadow-md">${b.count} <span class="text-xs font-bold opacity-70">${b.count === 1 ? 'artifact' : 'artifacts'}</span></p></div>
+                    <div class="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
+                        ${isPeak ? '<span class="px-2.5 py-1 rounded-full bg-gradient-to-r from-pink-600 to-rose-500 text-white"><i class="fas fa-mountain mr-1"></i>Peak ' + unit + '</span>' : ''}
+                        ${b.count ? `<span class="px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-white/80">${pct}% of all</span><span class="px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-white/80">#${rank} busiest ${unit}</span>` : ''}
+                    </div>
+                </div>${body}</div>`;
+        }
+
+        function riverFillScope() {
+            const sel = document.getElementById('river-scope'); if (!sel) return;
+            if (RIVER.scope !== 'all' && !customSections.some(s => String(s.id) === String(RIVER.scope))) RIVER.scope = 'all';
+            sel.innerHTML = '<option class="text-black" value="all">All realms</option>' + customSections.map(s => `<option class="text-black" value="${escHtml(String(s.id))}">${escHtml(s.name || 'Realm')}</option>`).join('');
+            sel.value = RIVER.scope;
+            ['month', 'year'].forEach(k => { const bt = document.getElementById('river-g-' + k); if (bt) bt.className = 'px-3 py-2 text-[10px] font-black uppercase tracking-widest ' + (RIVER.gran === k ? 'river-g-on' : 'river-g-off'); });
+        }
+
+        function riverCenterOn(i) {
+            const sc = document.getElementById('river-scroll'), g = RIVER.geom; if (!sc || !g || i == null || i < 0) return;
+            sc.scrollLeft = Math.max(0, g.cx(i) - sc.clientWidth / 2);
+        }
+
+        function riverBindOnce() {
+            if (RIVER.inited) return; RIVER.inited = true;
+            const cv = document.getElementById('river-canvas'), sc = document.getElementById('river-scroll'); if (!cv || !sc) return;
+            cv.addEventListener('click', e => {
+                const g = RIVER.geom; if (!g || !RIVER.data) return;
+                const i = Math.floor((e.clientX - cv.getBoundingClientRect().left - g.padL) / g.cell); if (i < 0 || i >= g.n) return;
+                RIVER.sel = i; riverRenderLayer(); riverRenderDetail(); riverDraw(performance.now() / 1000);
+            });
+            if ('IntersectionObserver' in window) { RIVER.io = new IntersectionObserver(es => { RIVER.vis = es.some(x => x.isIntersecting); riverSyncAnim(); }, { threshold: 0.05 }); RIVER.io.observe(sc); }
+            else { RIVER.vis = true; }
+            document.addEventListener('visibilitychange', riverSyncAnim);
+            window.addEventListener('resize', () => {
+                clearTimeout(RIVER.resizeT);
+                RIVER.resizeT = setTimeout(() => {
+                    const p = document.getElementById('stats-page');
+                    if (p && p.classList.contains('active') && RIVER.data) { riverLayoutCanvas(); riverDraw(performance.now() / 1000); }
+                }, 220);
+            });
+        }
+
+        function riverSetScope(v) { RIVER.scope = v || 'all'; RIVER.sel = null; renderTimelineRiver(); }
+        function riverSetGran(g) { RIVER.gran = g === 'year' ? 'year' : 'month'; RIVER.sel = null; renderTimelineRiver(); }
+
+        function renderTimelineRiver() {
+            const card = document.getElementById('river-card'), page = document.getElementById('stats-page');
+            if (!card || !page || !page.classList.contains('active')) return; // only paint while the Stats page is on screen
+            riverBindOnce(); riverFillScope();
+            const sc = document.getElementById('river-scroll'), chips = document.getElementById('river-chips'), detail = document.getElementById('river-detail');
+            RIVER.data = riverCompute();
+            if (!RIVER.data) {
+                RIVER.geom = null; riverStopAnim(); sc.classList.add('hidden'); chips.innerHTML = '';
+                detail.innerHTML = '<p class="text-xs opacity-70 text-center py-6">The river is still dry. Add your first artifact and the water starts to flow.</p>'; return;
+            }
+            sc.classList.remove('hidden');
+            const bks = riverBuckets(), peakI = RIVER.gran === 'year' ? RIVER.data.peakYear : RIVER.data.peakMonth;
+            if (RIVER.sel == null || RIVER.sel >= bks.length) { RIVER.sel = peakI >= 0 ? peakI : bks.length - 1; RIVER.center = true; }
+            riverRenderChips(); riverLayoutCanvas(); riverRenderLayer(); riverRenderDetail(); riverDraw(performance.now() / 1000);
+            if (RIVER.center) { riverCenterOn(RIVER.sel); RIVER.center = false; }
+            riverSyncAnim();
+        }
+
+        // ===== SECTION (REALM) PDF EXPORT =====
+        // One realm -> one PDF: themed cover page + every artifact in that realm.
+        // Photos follow the app's privacy blur (global-blur ON => thumbnails are blurred inside the PDF too).
+        function pdfLoadImage(src) {
+            return new Promise(resolve => {
+                try {
+                    let url = src, revoke = false;
+                    if (src instanceof Blob) { url = URL.createObjectURL(src); revoke = true; }
+                    const im = new Image();
+                    im.onload = () => { resolve(im); if (revoke) setTimeout(() => URL.revokeObjectURL(url), 200); };
+                    im.onerror = () => { if (revoke) URL.revokeObjectURL(url); resolve(null); };
+                    im.src = url;
+                } catch (e) { resolve(null); }
+            });
+        }
+        // Centre-crop `im` to outW x outH. blurDiv > 1 => draw tiny first then scale up (a cheap blur that works in every browser).
+        function lumOfRgb(c) { return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]; }
+        function pdfImageToJpeg(im, outW, outH, blurDiv, quality, round) {
+            try {
+                const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height; if (!iw || !ih) return null;
+                const k = Math.max(outW / iw, outH / ih), sw = outW / k, sh = outH / k, sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+                const c = document.createElement('canvas'); c.width = outW; c.height = outH;
+                const x = c.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+                if (round && round.r) { // top corners rounded: paint the card colour first, then clip the picture to a top-rounded shape
+                    const r = round.r, bg = round.bg || [0, 0, 0]; x.fillStyle = 'rgb(' + bg[0] + ',' + bg[1] + ',' + bg[2] + ')'; x.fillRect(0, 0, outW, outH);
+                    x.beginPath(); x.moveTo(r, 0); x.lineTo(outW - r, 0); x.quadraticCurveTo(outW, 0, outW, r); x.lineTo(outW, outH); x.lineTo(0, outH); x.lineTo(0, r); x.quadraticCurveTo(0, 0, r, 0); x.closePath(); x.clip();
+                }
+                if (blurDiv && blurDiv > 1) {
+                    const t = document.createElement('canvas'); t.width = Math.max(2, Math.round(outW / blurDiv)); t.height = Math.max(2, Math.round(outH / blurDiv));
+                    const tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high'; tx.drawImage(im, sx, sy, sw, sh, 0, 0, t.width, t.height);
+                    x.drawImage(t, 0, 0, outW, outH);
+                } else { x.drawImage(im, sx, sy, sw, sh, 0, 0, outW, outH); }
+                return c.toDataURL('image/jpeg', quality || 0.72);
+            } catch (e) { return null; }
+        }
+        async function exportSectionPDF(secId, btn) {
+            if (activeSecurityMode === 'fake' || activeSecurityMode === 'locked') return showToast("Action blocked", true);
+            const sec = customSections.find(s => s.id === secId); if (!sec) return showToast("Realm not found", true);
+            if (!window.jspdf) return showToast("PDF library not loaded yet", true);
+            if (window._secPdfBusy) return showToast("A PDF is already being made...", true);
+            window._secPdfBusy = true;
+            const items = vaultData.filter(i => i.sectionId === sec.id);
+            showToast("Crafting " + escHtml(sec.name || 'realm') + " PDF...");
+            const oldHtml = btn ? btn.innerHTML : null; if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+            try {
+                const { jsPDF } = window.jspdf; const doc = new jsPDF();
+                const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 18;
+                const th = getEmpireTheme(sec); const A = hexToRgb(th.accent), A2 = hexToRgb(th.accent2), BG = hexToRgb(th.bg);
+                const mix = (c1, c2, t) => c1.map((v, i) => Math.round(v * (1 - t) + c2[i] * t));
+                const bgc = BG.map(v => Math.round(v * 0.6 + 4));
+                const card = mix(mix(bgc, A, 0.12), [255, 255, 255], 0.04), zebra = mix(bgc, A, 0.08), dim = mix(bgc, A, 0.45);
+                const blurOn = document.body.classList.contains('global-blur');
+                const gold = [255, 215, 0], titleCol = sec.isLegendary ? gold : [255, 255, 255];
+                const fill = c => doc.setFillColor(c[0], c[1], c[2]), ink = c => doc.setTextColor(c[0], c[1], c[2]), stroke = c => doc.setDrawColor(c[0], c[1], c[2]);
+                const setOp = o => { try { doc.setGState(new doc.GState({ opacity: o })); } catch (e) {} };
+                const border = () => { stroke(dim); doc.setLineWidth(0.35); doc.rect(8, 8, W - 16, H - 16, 'S'); };
+                const pageBg = glow => {
+                    fill(bgc); doc.rect(0, 0, W, H, 'F');
+                    if (glow) { for (let i = 0; i < 10; i++) { setOp(0.075 * (1 - i / 10)); fill(A); doc.rect(0, i * 4, W, 4, 'F'); } setOp(1); }
+                    border();
+                };
+                const fit = (txt, maxW) => { let t = String(txt), t0 = t; while (doc.getTextWidth(t) > maxW && t.length > 4) t = t.slice(0, -1); return t === t0 ? t : t.slice(0, -2).replace(/\s+$/, '') + '...'; };
+                const safeUrl = u => { u = String(u == null ? '' : u).trim(); if (!u || /^(javascript|data|vbscript|file):/i.test(u)) return null; if (/^https?:\/\//i.test(u)) return u; if (/^[\w-]+(\.[\w-]+)+(\/|$|\?|#|:)/i.test(u)) return 'https://' + u; return null; };
+                const N = items.length, PER = 9;
+
+                // ---------- PAGE 1 : COVER ----------
+                const HH = 168; let coverJpg = null;
+                if (sec.cover) { const im = await pdfLoadImage(sec.cover); if (im) coverJpg = pdfImageToJpeg(im, 840, Math.round(840 * HH / W), blurOn ? 4 : 1, 0.78); }
+                pageBg(!coverJpg);
+                if (coverJpg) {
+                    doc.addImage(coverJpg, 'JPEG', 0, 0, W, HH);
+                    setOp(0.30); fill([0, 0, 0]); doc.rect(0, 0, W, HH, 'F'); setOp(1);
+                } else {
+                    setOp(0.26); fill(A); doc.rect(0, 0, W, HH, 'F'); setOp(0.14); fill(A2); doc.rect(0, HH * 0.5, W, HH * 0.5, 'F');
+                    setOp(0.14); fill(A); doc.circle(W / 2, 66, 52, 'F'); setOp(0.09); fill(A2); doc.circle(W / 2, 66, 34, 'F'); setOp(1);
+                }
+                for (let i = 0; i < 22; i++) { setOp(Math.min(1, (i + 1) / 21)); fill(bgc); doc.rect(0, HH - 44 + i * 2, W, 2.3, 'F'); } setOp(1);
+                border();
+                doc.setFont("helvetica", "bold"); doc.setFontSize(9); ink(A); doc.text("R E A L M", W / 2, 111, { align: "center" });
+                let name = String(sec.name || 'Realm').toUpperCase(), fs = 40; doc.setFont("times", "bold");
+                do { doc.setFontSize(fs); fs -= 2; } while (doc.getTextWidth(name) > W - 44 && fs > 14);
+                ink(titleCol); doc.text(name, W / 2, 128, { align: "center" });
+                stroke(A); doc.setLineWidth(0.8); doc.line(W / 2 - 28, 136, W / 2 + 28, 136);
+                doc.setFont("helvetica", "bold"); doc.setFontSize(10); ink(A);
+                doc.text(N + (N === 1 ? " ARTIFACT WITHIN" : " ARTIFACTS WITHIN"), W / 2, 146, { align: "center" });
+                if (sec.desc) {
+                    doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); ink([218, 218, 218]);
+                    const dl = doc.splitTextToSize(String(sec.desc), W - 70).slice(0, 9); doc.text(dl, W / 2, 164, { align: "center", lineHeightFactor: 1.6 });
+                }
+                if (!N) { doc.setFont("helvetica", "italic"); doc.setFontSize(11); ink([150, 150, 150]); doc.text("This realm is still empty.", W / 2, 215, { align: "center" }); }
+                doc.setFont("helvetica", "normal"); doc.setFontSize(8); ink([120, 120, 120]);
+                doc.text("Exported " + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), W / 2, H - 20, { align: "center" });
+
+                // ---------- INDEX PAGES (own pages, clickable) ----------
+                const IR = 8, ICW = (W - M * 2 - 8) / 2, IY0 = 54, capP = Math.floor((H - 26 - IY0) / IR);
+                const idxPages = N ? Math.ceil(N / (2 * capP)) : 0, gridStart = 2 + idxPages;
+                for (let p = 0; p < idxPages; p++) {
+                    doc.addPage(); pageBg(true);
+                    doc.setFont("times", "bold"); doc.setFontSize(26); ink(titleCol); doc.text(idxPages > 1 ? "INDEX " + (p + 1) + "/" + idxPages : "INDEX", M, 30);
+                    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); ink([165, 165, 165]); doc.text("Tap any name to jump to it  -  " + N + (N === 1 ? " artifact" : " artifacts"), M, 38);
+                    stroke(A); doc.setLineWidth(0.8); doc.line(M, 43, M + 30, 43); stroke(dim); doc.setLineWidth(0.25); doc.line(M + 30, 43, W - M, 43);
+                }
+                for (let n = 0; n < N; n++) {
+                    const p = Math.floor(n / (2 * capP)), r = n % (2 * capP), col = Math.floor(r / capP), row = r % capP;
+                    doc.setPage(2 + p);
+                    const x0 = M + col * (ICW + 8), yy = IY0 + row * IR, pg = gridStart + Math.floor(n / PER);
+                    if (row % 2 === 0) { fill(zebra); doc.roundedRect(x0, yy - 5.4, ICW, IR, 1.5, 1.5, 'F'); }
+                    doc.setFont("helvetica", "bold"); doc.setFontSize(8); ink(A); doc.text(String(n + 1), x0 + 2.5, yy);
+                    doc.setFont("helvetica", "normal"); doc.setFontSize(9); ink([238, 238, 238]); doc.text(fit(items[n].title || 'Nameless', ICW - 28), x0 + 11, yy);
+                    doc.setFont("helvetica", "bold"); doc.setFontSize(8); ink(A2.map((v, i) => Math.min(255, Math.round(v * 0.6 + A[i] * 0.4 + 40)))); doc.text("p." + pg, x0 + ICW - 2.5, yy, { align: "right" });
+                    doc.link(x0, yy - 5.4, ICW, IR, { pageNumber: pg });
+                }
+
+                // ---------- GRID PAGES (poster cards, 3 per row) ----------
+                const GM = 14, GAP = 6, CW = (W - GM * 2 - GAP * 2) / 3, THH = 54, CH = 80, TOP = 25;
+                for (let n = 0; n < N; n++) {
+                    const item = items[n], slot = n % PER;
+                    if (slot === 0) {
+                        doc.addPage(); pageBg(true);
+                        const a = n + 1, b = Math.min(N, n + PER);
+                        doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); ink(A); doc.text(fit(String(sec.name || 'Realm').toUpperCase(), 100), GM, 15);
+                        doc.setFont("helvetica", "normal"); doc.setFontSize(8); ink([150, 150, 150]); doc.text("ARTIFACTS " + a + "-" + b + " OF " + N, W - GM, 15, { align: "right" });
+                        stroke(dim); doc.setLineWidth(0.25); doc.line(GM, 19, W - GM, 19);
+                    }
+                    const cx = GM + (slot % 3) * (CW + GAP), cy = TOP + Math.floor(slot / 3) * (CH + 6);
+                    fill(card); doc.roundedRect(cx, cy, CW, CH, 2.5, 2.5, 'F');
+                    const bio = safeUrl(item.bioLink), cb = coverBlobOf(item); let drew = false;
+                    if (cb) {
+                        const im = await pdfLoadImage(cb);
+                        const jpg = im ? pdfImageToJpeg(im, 340, Math.round(340 * THH / CW), blurOn ? 14 : 1, 0.72, { r: 15, bg: card }) : null;
+                        if (jpg) { doc.addImage(jpg, 'JPEG', cx, cy, CW, THH); drew = true; }
+                    }
+                    if (!drew) { fill(mix(card, A, 0.30)); doc.roundedRect(cx, cy, CW, THH + 5, 2.5, 2.5, 'F'); fill(card); doc.rect(cx, cy + THH, CW, 5, 'F'); }
+                    stroke(dim); doc.setLineWidth(0.25); doc.roundedRect(cx, cy, CW, CH, 2.5, 2.5, 'S');
+                    if (bio) doc.link(cx, cy, CW, THH, { url: bio });
+                    // number badge (top-left) + rarity (top-right)
+                    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); const nb = String(n + 1), nw = doc.getTextWidth(nb) + 5;
+                    setOp(0.62); fill([0, 0, 0]); doc.roundedRect(cx + 2.5, cy + 2.5, nw, 5.4, 1.3, 1.3, 'F'); setOp(1); ink([255, 255, 255]); doc.text(nb, cx + 2.5 + nw / 2, cy + 6.3, { align: "center" });
+                    if (item.rarity) {
+                        doc.setFont("times", "italic"); doc.setFontSize(8); const rt = String(item.rarity).slice(0, 14), rw = doc.getTextWidth(rt) + 5;
+                        setOp(0.62); fill([0, 0, 0]); doc.roundedRect(cx + CW - rw - 2.5, cy + 2.5, rw, 5.4, 1.3, 1.3, 'F'); setOp(1); ink(gold); doc.text(rt, cx + CW - 2.5 - rw / 2, cy + 6.3, { align: "center" });
+                    }
+                    // title + tags
+                    doc.setFont("helvetica", "bold"); doc.setFontSize(9); ink([247, 244, 246]); doc.text(fit(item.title || 'Nameless', CW - 6.5), cx + 3.2, cy + THH + 7.4);
+                    if (bio) doc.link(cx, cy + THH, CW, 10, { url: bio });
+                    doc.setFont("helvetica", "normal"); doc.setFontSize(7); ink([160, 160, 160]);
+                    doc.text(fit((item.categories && item.categories.length) ? item.categories.join(', ') : 'Unsorted', CW - 6.5), cx + 3.2, cy + THH + 12.6);
+                    // link pills
+                    const pills = []; if (bio) pills.push({ label: 'BIO >', url: bio, main: true });
+                    (item.urls || []).forEach((u, k) => { const raw = (typeof u === 'string') ? u : (u && u.url), lb = (u && typeof u === 'object' && u.label) ? String(u.label) : '', su = safeUrl(raw); if (su && su !== bio) pills.push({ label: (/^[\x20-\x7E]{1,9}$/.test(lb) ? lb.toUpperCase() : 'LINK ' + (k + 1)), url: su, main: false }); });
+                    let px = cx + 3.2; const py = cy + THH + 17.4, ph = 6; doc.setFont("helvetica", "bold"); doc.setFontSize(6.5);
+                    for (const pl of pills) {
+                        const pw = doc.getTextWidth(pl.label) + 6; if (px + pw > cx + CW - 3) break;
+                        if (pl.main) { fill(A); doc.roundedRect(px, py, pw, ph, 1.5, 1.5, 'F'); ink(lumOfRgb(A) > 150 ? [20, 12, 16] : [255, 255, 255]); }
+                        else { stroke(A2); doc.setLineWidth(0.3); doc.roundedRect(px, py, pw, ph, 1.5, 1.5, 'S'); ink([235, 235, 235]); }
+                        doc.text(pl.label, px + pw / 2, py + 4.1, { align: "center" }); doc.link(px, py, pw, ph, { url: pl.url }); px += pw + 2.2;
+                    }
+                    if (n % 6 === 5) await new Promise(r => setTimeout(r, 0)); // let the UI breathe on big realms
+                }
+
+                // ---------- FOOTERS ----------
+                const pc = doc.internal.getNumberOfPages();
+                for (let i = 2; i <= pc; i++) {
+                    doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); ink([120, 120, 120]);
+                    doc.text("Page " + i + " of " + pc, W / 2, H - 14, { align: "center" });
+                    doc.text(fit(String(sec.name || 'Realm'), 50), W - M, H - 14, { align: "right" });
+                    if (i >= gridStart && N) { doc.setFont("helvetica", "bold"); ink(A); doc.text("< INDEX", M, H - 14); doc.link(M - 2, H - 19, 24, 8, { pageNumber: 2 }); }
+                }
+
+                const blob = doc.output('blob'); const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = (String(sec.name || 'Realm').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Realm') + "_Realm.pdf"; a.style.display = 'none';
+                document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 10000);
+                showToast("Realm PDF exported");
+            } catch (e) { console.error(e); showToast("PDF Export failed", true); }
+            finally { window._secPdfBusy = false; if (btn) { btn.disabled = false; btn.innerHTML = oldHtml; } }
         }
     </script>
 </body>
